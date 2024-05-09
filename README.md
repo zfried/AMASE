@@ -20,7 +20,7 @@ Additional file requirements:
 Notable Output Files:
 1. dataset_final.csv: This is the entire dataset containing all peak frequencies and intensities along with the molecular candidates determined by querying Splatalogue as well as provided local catalogs.
 2. interactive_output.html: A file containing several interactive Plotly graphs and tables that describe each of the assigned lines and molecules. This is especially useful for manual quality checks. 
-3. output_report.txt: A detailed description of every line assignment, detailing why each molecular candidate was or wasn't assigned.
+3. output_report.txt: An in-depth description of every line assignment, detailing why each molecular candidate was or wasn't assigned.
 4. final_assignment_table.csv: A .csv file containing all of the line assignments.
 5. u_line_candidates.csv: The top-scored molecules from the structural relevance metric following the assignment of every line. These can be used as starting points (either via rotational constant calculations or follow-up experiments) for assigning the unidentified lines.
 
