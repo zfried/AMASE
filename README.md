@@ -2,7 +2,7 @@
 
 Hello! The algorithm in the repository titled assignment_algorithm.py can be used to automatically assign mixtures studied by rotational spectroscopy. Along with the analysis of the spectroscopic signals, it also leverages graph analysis and machine-learning molecular embedding methods to consider how structurally/chemically similar the molecular candidates are to the previously observed mixture components or known chemical priors. A paper describing the technique has been submitted for publication.
 
-It can currently be run on both laboratory mixtures. An algorithm for astronomical datasets is in development. 
+It can currently be run laboratory mixtures. An algorithm for astronomical datasets is in development. 
 
 In order to run the algorithm you will need the following:
 
