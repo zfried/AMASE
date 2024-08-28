@@ -2762,6 +2762,9 @@ scrapeMins = (tockScrape-tickScrape)/60
 scrapeMins2 = "{{:.{}f}}".format(2).format(scrapeMins)
 print('Catalog scraping took ' + str(scrapeMins2) + ' minutes.')
 
+analysisTick = time.perf_counter()
+
+
 mol_smileMols = []
 mol_smileSmiles = []
 
@@ -3379,6 +3382,13 @@ f.write('Number of unassigned lines: ' + str(unCount))
 f.write('\n')
 
 
+analysisTock = time.perf_counter()
+scrapeMins = (analysisTock-analysisTick)/60
+scrapeMins2 = "{{:.{}f}}".format(2).format(scrapeMins)
+print('')
+print('Line assignment took ' + str(scrapeMins2) + ' minutes.')
+print('')
+print('Creating interactive output now.')
 
 '''
 The remainder of the code creates the interactive html output. It predominately uses Plotly figures
@@ -3788,5 +3798,9 @@ for i in allAssigned:
 # Write and save HTML file
 with open(os.path.join(direc, 'interactive_output.html'), 'w') as f:
     f.write(html_content)
+
+
+
+
 
 print('Thank you for using this software! An interactive output (titled interactive_output.html) and a detailed line-by-line output (titled output.txt) are saved to your requested directory. Please send any questions/bugs to zfried@mit.edu')
