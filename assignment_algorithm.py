@@ -339,6 +339,65 @@ def checkIntensity(tag, linelist, molForm, line_int, molFreq):
     return maxInt, molRank, closestFreq, intValue
 
 
+
+def checkIntensityFinal3(tag, linelist, molForm, line_int, molFreq):
+    '''
+    Function that checks whether the simulated line intensity is reasonable enough for assignment.
+    '''
+    if linelist == 'local':
+        formIdx = totalForms_local.index(molForm)
+        indexStr = str(formIdx)
+
+        individualDF = pd.read_csv(os.path.join(pathLocal, indexStr + '.csv'))
+        freqs = list(individualDF['frequencies'])
+        peak_ints = np.array(list(individualDF['intensities']))
+    else:
+        if linelist == "CDMS" or linelist == "JPL":
+            formIdx = totalTags.index(tag)
+            indexStr = str(totalIndices[formIdx])
+            # indexStr = str(formIdx)
+        else:
+            formIdx = totalForms.index(molForm)
+            # indexStr = str(formIdx)
+            indexStr = str(totalIndices[formIdx])
+
+        individualDF = pd.read_csv(os.path.join(pathSplat, indexStr + '.csv'))
+        freqs = list(individualDF['frequencies'])
+        peak_ints = np.array(list(individualDF['intensities']))
+
+    closestIdx, closestFreq = closest(freqs, molFreq)
+
+    if freqs.count(closestFreq) > 1:
+        indices = [c for c, n in enumerate(freqs) if n == closestFreq]
+        intSpecs = [peak_ints[q] for q in indices]
+        intIdx = intSpecs.index(max(intSpecs))
+        closestIdx = indices[intIdx]
+
+    if abs(closestFreq - molFreq) > 0.5:
+        closestFreq = 'NA'
+    intValue = peak_ints[closestIdx]
+    if intValue == 0 or math.isnan(intValue):
+        scaleValue = 1.E20
+    else:
+        scaleValue = line_int / intValue
+    peak_ints_scaled = peak_ints * scaleValue
+
+    combList = [(freqs[q], peak_ints_scaled[q]) for q in range(len(freqs))]
+    sortedComb = sortTupleArray(combList)
+    sortedComb.reverse()
+
+    maxInt = sortedComb[0][1]
+    found = False
+    for i in range(len(sortedComb)):
+        if sortedComb[i][0] == closestFreq:
+            molRank = i
+            found = True
+
+    if found == False:
+        molRank = 1000
+
+    return maxInt, molRank, closestFreq
+
 def hasIso(mol):
     '''
     Function that returns number of rare isotopologues in formula
@@ -1786,7 +1845,7 @@ print('')
 temp = float(input('Please enter the experimental temperature (in Kelvin): \n'))
 print('')
 validInput = input(
-    'Which atoms could feasibly be present in the mixture?\n If you type default, the valid atoms will be set to C, O, H, N, and S \n If you type all, all atoms in the periodic table will be considered. It is highly recommended that you specify, however. \n If you would like to specify, please separate the atoms by commas (i.e. type C,O,S for carbon, oxygen and sulfur)\n')
+    'Which atoms could feasibly be present in the mixture?\n If you type default, the valid atoms will be set to C, O, H, N, and S \n If you type all, all atoms in the periodic table will be considered. It is highly recommended that you specify (or choose default), however. \n If you would like to specify, please separate the atoms by commas (i.e. type C,O,S for carbon, oxygen and sulfur)\n')
 print('')
 validLower = ''.join(validInput.split()).lower()
 validSpace = ''.join(validInput.split())
@@ -2035,6 +2094,7 @@ resolution = data.spectrum.frequency[1] - data.spectrum.frequency[0]
 ckm = (scipy.constants.c * 0.001)
 min_separation = resolution * ckm / np.amax(freq_arr)
 peak_indices = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=sig)
+peak_indices_original = peak_indices
 peak_freqs = data.spectrum.frequency[peak_indices]
 peak_ints = abs(data.spectrum.Tb[peak_indices])
 
@@ -2087,7 +2147,7 @@ print('')
 print('Number of peaks at ' + str(sig) + ' sigma significance in the spectrum: ' + str(len(peak_freqs)))
 print('')
 
-print('')
+#print('')
 # sorting peaks by intensity
 combPeaks = [(peak_freqs[i], peak_ints[i]) for i in range(len(peak_freqs))]
 sortedCombPeaks = sortTupleArray(combPeaks)
@@ -2231,7 +2291,7 @@ catDF.to_csv(pathCat)
 
 print('done with local catalog scraping!')
 print('')
-print('querying splatalogue')
+print('querying CDMS/JPL')
 print('')
 
 
@@ -2812,14 +2872,14 @@ testingScoresList = []
 testingScoresListFinal = []
 sorted_dict_last = {}
 updateCounter = 0
-
+'''
 parent_csv = pd.read_csv(os.path.join(direc, 'parent_list.csv'))
 mol_par = list(parent_csv['mol'])
 list_par = list(parent_csv['linelist'])
 mol_parent = list(parent_csv['parent'])
 list_parent = list(parent_csv['parent list'])
 tag_parent = list(parent_csv['parent tag'])
-
+'''
 overallLength = len(actualFrequencies)
 
 # printing progress bar
@@ -3324,7 +3384,7 @@ f.write('\n')
 The remainder of the code creates the interactive html output. It predominately uses Plotly figures
 for interactivity. 
 '''
-'''
+
 data = molsim.file_handling.load_obs(specPath, type='txt')
 ll0, ul0 = molsim.functions.find_limits(data.spectrum.frequency)
 freq_arr = data.spectrum.frequency
@@ -3332,16 +3392,20 @@ int_arr = data.spectrum.Tb
 resolution = data.spectrum.frequency[1] - data.spectrum.frequency[0]
 ckm = (scipy.constants.c * 0.001)
 min_separation = resolution * ckm / np.amax(freq_arr)
-#peak_indices = find_peaks(freq_arr, int_arr, res=resolution, min_sep=0.5, sigma=5, local_rms = True)
-#peak_freqs = np.array(specDF['frequency'])
-#peak_ints = np.array(specDF['intensity'])
-
-peak_indices = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=3)
-peak_freqs = data.spectrum.frequency[peak_indices]
+#peak_indices = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=sig)
+peak_indices = peak_indices_original
+peak_freqs_new = data.spectrum.frequency[peak_indices]
 peak_ints = abs(data.spectrum.Tb[peak_indices])
+peak_ints_new = abs(data.spectrum.Tb[peak_indices])
+peak_freqs_vlsr = []
 
-peak_freqs_new = peak_freqs
-peak_ints_new = peak_ints
+for i in peak_freqs_new:
+    off = i * vlsr_value / 299792
+    newFreq = i + off
+    peak_freqs_vlsr.append(newFreq)
+
+peak_freqs_vlsr = np.array(peak_freqs_vlsr)
+peak_freqs = np.array(peak_freqs_vlsr)
 
 peak_freqs_og = peak_freqs
 
@@ -3387,15 +3451,8 @@ peak_ints = peak_ints3
 peak_freqs = peak_freqs3
 
 
-peak_ints = [peak_ints[i] for i in range(len(peak_ints)) if within2(peak_freqs[i], fullArts) == False]
-peak_indices = [peak_indices[i] for i in range(len(peak_indices)) if within2(peak_freqs[i], fullArts) == False]
-peak_freqs = [peak_freqs[i] for i in range(len(peak_freqs)) if within2(peak_freqs[i], fullArts) == False]
-
 peak_freqs_new = peak_freqs3New
 peak_ints_new = peak_ints3New
-
-peak_ints_new = [peak_ints_new[i] for i in range(len(peak_ints_new)) if within2(peak_freqs_new[i], fullArts) == False]
-peak_freqs_new = [peak_freqs_new[i] for i in range(len(peak_freqs_new)) if within2(peak_freqs_new[i], fullArts) == False]
 
 
 combPeaks = [(peak_freqs[i], peak_ints[i]) for i in range(len(peak_freqs))]
@@ -3502,7 +3559,7 @@ for i in range(len(newTestingScoresListFinal)):
             indivList = 'JPL'
             indivTag = totalTags[localIdx]
 
-        maxInt2, molRank2, closestFreq2 = checkIntensity(indivTag, indivList, topMolForm, spectrum_ints[i],
+        maxInt2, molRank2, closestFreq2 = checkIntensityFinal3(indivTag, indivList, topMolForm, spectrum_ints[i],
                                                          spectrum_freqs[i])
         hoverTextAssign.append(textIndiv)
         if topMol[2] not in allAssigned:
@@ -3536,7 +3593,7 @@ count100 = 0
 for u in freq_arr:
     nearby = False
     for q in allAssignFreqs:
-        if abs(u - q) <= 1.5:
+        if abs(u - q) <= 0.7:
             nearby = True
 
     if nearby == True:
@@ -3583,14 +3640,11 @@ fig.update_layout(
     title='Spectrum with assignments (green for uniquely assigned, red for unassigned, yellow for multiple possible candidates)',
     xaxis_title='Frequency (MHz)', yaxis_title='Intensity (arb.)', height=500)
 startingText = 'Initial Precursor Molecules: '
-if len(startingMols) == 0:
-    startingText = startingText + 'Nothing inputted'
-else:
-    for p in startingMols:
-        if p != startingMols[-1]:
-            startingText = startingText + p + ', '
-        else:
-            startingText = startingText + p
+for p in startingMols:
+    if p != startingMols[-1]:
+        startingText = startingText + p + ', '
+    else:
+        startingText = startingText + p
 
 
 text_content = """
@@ -3663,7 +3717,7 @@ count100 = 0
 for u in freq_arr:
     nearby = False
     for q in peak_freqs_og:
-        if abs(u - q) <= 1.5:
+        if abs(u - q) <= 0.75:
             if q in artifactFreqs or inAddedArt(q, added_art) == True:
                 nearby = True
 
@@ -3736,4 +3790,3 @@ with open(os.path.join(direc, 'interactive_output.html'), 'w') as f:
     f.write(html_content)
 
 print('Thank you for using this software! An interactive output (titled interactive_output.html) and a detailed line-by-line output (titled output.txt) are saved to your requested directory. Please send any questions/bugs to zfried@mit.edu')
-'''
