@@ -12,6 +12,7 @@ from rdkit.Chem import DataStructs
 import numpy as np
 import scipy
 from scipy import stats
+from scipy import signal
 import gc
 import random
 import time
@@ -46,6 +47,7 @@ import io
 import base64
 from scipy.stats import norm
 import plotly.graph_objects as go
+import shutil
 
 tick = time.perf_counter()
 
@@ -58,7 +60,7 @@ np.bool = bool
 import molsim
 
 #maximum number of possible candidates for a single line
-maxMols = 30
+maxMols = 50
 
 
 def near_whole(number):
@@ -82,7 +84,13 @@ def sortTupleArray(tup):
     return tup
 
 
-
+def find_nearest(arr,val):
+	idx = np.searchsorted(arr, val, side="left")
+	if idx > 0 and (idx == len(arr) or math.fabs(val - arr[idx-1]) \
+		 < math.fabs(val - arr[idx])):
+		return idx-1
+	else:
+		return idx
 
 def deleteDuplicates(list):
     '''
@@ -206,6 +214,72 @@ def closest(lst, K):
     return idx, lst[idx]
 
 
+
+def checkIntensityForward(tag, linelist, molForm, line_int, molFreq, loopIter):
+    '''
+    Function that checks whether the simulated line intensity is reasonable enough for assignment.
+    '''
+
+    thick = False
+
+    if linelist == 'local':
+        formIdx = totalForms_local.index(molForm)
+        indexStr = str(formIdx)
+
+        individualDF = pd.read_csv(os.path.join(pathLocal, indexStr + '.csv'))
+        freqs = list(individualDF['frequencies'])
+        peak_ints = np.array(list(individualDF['intensities']))
+    else:
+        if linelist == "CDMS" or linelist == "JPL":
+            formIdx = totalTags.index(int(tag))
+            indexStr = str(totalIndices[formIdx])
+            # indexStr = str(formIdx)
+        else:
+            formIdx = totalForms.index(molForm)
+            # indexStr = str(formIdx)
+            indexStr = str(totalIndices[formIdx])
+
+        individualDF = pd.read_csv(os.path.join(pathSplat, indexStr + '.csv'))
+        freqs = list(individualDF['frequencies'])
+        peak_ints = np.array(list(individualDF['intensities']))
+
+    closestIdx, closestFreq = closest(freqs, molFreq)
+
+    if freqs.count(closestFreq) > 1:
+        indices = [c for c, n in enumerate(freqs) if n == closestFreq]
+        intSpecs = [peak_ints[q] for q in indices]
+        intIdx = intSpecs.index(max(intSpecs))
+        closestIdx = indices[intIdx]
+
+    if abs(closestFreq - molFreq) > 0.5:
+        closestFreq = 'NA'
+    intValue = peak_ints[closestIdx]
+    if intValue == 0 or math.isnan(intValue):
+        scaleValue = 1.E20
+    else:
+        scaleValue = line_int / intValue
+    peak_ints_scaled = peak_ints * scaleValue
+
+
+    thick = False
+
+    combList = [(freqs[q], peak_ints_scaled[q]) for q in range(len(freqs))]
+    sortedComb = sortTupleArray(combList)
+    sortedComb.reverse()
+
+    maxInt = sortedComb[0][1]
+    found = False
+    for i in range(len(sortedComb)):
+        if sortedComb[i][0] == closestFreq:
+            molRank = i
+            found = True
+
+    if found == False:
+        molRank = 1000
+
+    return maxInt, molRank, closestFreq, intValue, thick
+
+
 def checkIntensity(tag, linelist, molForm, line_int, molFreq):
     '''
     Function that checks whether the simulated line intensity is reasonable enough for assignment.
@@ -262,7 +336,7 @@ def checkIntensity(tag, linelist, molForm, line_int, molFreq):
     if found == False:
         molRank = 1000
 
-    return maxInt, molRank, closestFreq
+    return maxInt, molRank, closestFreq, intValue
 
 
 def hasIso(mol):
@@ -471,6 +545,128 @@ def getCatCDMS(tag, saveNum):
         return False
 
 
+
+def getCatCDMSCheck(tag, saveNum):
+    '''
+    This function scrapes a .cat file from CDMS,
+    simulates it at the experimental temperature, and
+    stores the simulated peak frequencies and intensities in csv file.
+    '''
+
+    try:
+        tag = int(tag)
+        strTag = str(tag)
+        strSave = str(saveNum)
+        if tag >= 100000:
+            api_url = f"https://cdms.astro.uni-koeln.de/classic/entries/c{tag}.cat"
+        if tag >= 0 and tag < 100000:
+            api_url = f"https://cdms.astro.uni-koeln.de/classic/entries/c0{tag}.cat"
+        if tag < 0 and tag > -100000:
+            tag2 = -1 * tag
+            api_url = f"https://cdms.astro.uni-koeln.de/classic/entries/c0{tag2}.cat"
+        if tag <= -100000:
+            tag2 = -1 * tag
+            api_url = f"https://cdms.astro.uni-koeln.de/classic/entries/c{tag2}.cat"
+        response = requests.get(api_url)
+        # print(response.text)
+        isValid = False
+        if 'Not Found' not in response.text:
+            isValid = True
+            with open(os.path.join(pathSplatCat, strSave + '.cat'), "w+") as f:
+                f.write(response.text)
+
+            dfFreq = pd.DataFrame()
+            q = os.path.join(pathSplatCat, strSave + '.cat')
+            mol = molsim.file_handling.load_mol(q, type='SPCAT')
+            minFreq = ll0
+            maxFreq = ul0
+            if 'y' in astro or 'Y' in astro:
+                observatory1 = molsim.classes.Observatory(dish=dishSize)
+                observation1 = molsim.classes.Observation(observatory=observatory1)
+                src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=dv_value)
+                sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                                res=0.0014, observation=observation1)
+            else:
+                src = molsim.classes.Source(Tex=temp, column=1.E9)
+                sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                                res=0.0014)
+            peak_freqs2 = sim.spectrum.frequency
+            peak_ints2 = sim.spectrum.Tb
+            if peak_ints is not None:
+                freqs = list(peak_freqs2)
+                ints = list(peak_ints2)
+            else:
+                freqs = []
+                ints = []
+        return freqs, ints
+
+    except:
+        freqs = []
+        ints = []
+        return freqs, ints
+
+
+def getCatJPLCheck(tag, saveNum):
+    try:
+        tag = int(tag)
+        strTag = str(tag)
+        strSave = str(saveNum)
+        if tag >= 100000:
+            url = 'https://spec.jpl.nasa.gov/ftp/pub/catalog/c' + strTag + '.cat'
+        if tag >= 0 and tag < 100000:
+            url = 'https://spec.jpl.nasa.gov/ftp/pub/catalog/c0' + strTag + '.cat'
+        if tag < 0 and tag > -100000:
+            tag = -1 * tag
+            strTag = str(tag)
+            url = 'https://spec.jpl.nasa.gov/ftp/pub/catalog/c0' + strTag + '.cat'
+        if tag <= -100000:
+            tag = -1 * tag
+            strTag = str(tag)
+            url = 'https://spec.jpl.nasa.gov/ftp/pub/catalog/c' + strTag + '.cat'
+
+        response1 = requests.get(url)
+        responseText1 = str(response1.text)
+        isValid = False
+        if 'Not Found' not in responseText1:
+            isValid = True
+            with open(os.path.join(pathSplatCat, strSave + '.cat'), "w+") as f:
+                f.write(responseText1)
+
+            dfFreq = pd.DataFrame()
+            q = os.path.join(pathSplatCat, strSave + '.cat')
+            mol = molsim.file_handling.load_mol(q, type='SPCAT')
+            minFreq = ll0
+            maxFreq = ul0
+            if 'y' in astro or 'Y' in astro:
+                observatory1 = molsim.classes.Observatory(dish=dishSize)
+                observation1 = molsim.classes.Observation(observatory=observatory1)
+                src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=dv_value)
+                sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                                res=0.0014, observation=observation1)
+            else:
+                src = molsim.classes.Source(Tex=temp, column=1.E9)
+                sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                                res=0.0014)
+            peak_freqs2 = sim.spectrum.frequency
+            peak_ints2 = sim.spectrum.Tb
+            if peak_ints is not None:
+                freqs = list(peak_freqs2)
+                ints = list(peak_ints2)
+            else:
+                freqs = []
+                ints = []
+
+        return freqs, ints
+
+    except:
+        freqs = []
+        ints = []
+        return freqs, ints
+
+
+
+
+
 def getCatJPL(tag, saveNum):
     '''
     This function scrapes a .cat file from JPL database,
@@ -577,31 +773,94 @@ def checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full,
     sortedComb = sortTupleArray(combList)
     sortedComb.reverse()
 
+    '''
+    filteredCombList = []
+    rms_comb_list = []
+    for comb1 in combList:
+        clo = find_closest(rms_dict_values, comb1[0])
+        rms_val = rms_dict[rms_dict_values[clo]]
+        if comb1[1] > 10*rms_val:
+            filteredCombList.append(comb1)
+    '''
+
     filteredCombList = [i for i in combList if i[1] > 10 * rms]
 
     correct = 0
 
+    tolerance = 0.2
     rule_out = False
     if len(filteredCombList) > 1:
-        for i in filteredCombList:
-            inThere = False
-            for z in peak_freqs_full:
-                if z < i[0] + 0.2 and z > i[0] - 0.2:
-                    inThere = True
-                    break
+        for target_value in filteredCombList:
+            inThere = np.any((peak_freqs_full >= target_value[0] - tolerance) & (peak_freqs_full <= target_value[0] + tolerance))
 
             if inThere == True:
                 correct += 1
 
-        if correct / len(filteredCombList) < 0.5:
+
+        if correct / len(filteredCombList) < 0.5 and len(filteredCombList) > 1:
             rule_out = True
+
 
     return rule_out
 
 
+
+def checkIso(formula, linelist, tag, line_int_value):
+    print(formula,linelist, tag)
+    hasCandidate = False
+
+    for p in range(len(mol_par)):
+        if mol_par[p] == formula and list_par[p] == linelist:
+            par = mol_parent[p]
+            li = list_parent[p]
+            ta = tag_parent[p]
+            break
+
+    print(par, li, ta)
+    print(line_int_value)
+    fullCats = pd.read_csv(os.path.join(pathSplatCat, 'catalog_list.csv'))
+    fullCatForms = list(fullCats['formula'])
+    fullCatLists = list(fullCats['linelist'])
+    fullCatIdx = list(fullCats['idx'])
+    foundPar = False
+
+    for p in range(len(fullCatForms)):
+        if fullCatForms[p] == par and fullCatLists[p] == li:
+            foundPar = True
+            idx = fullCatIdx[p]
+            break
+
+    if foundPar == True:
+        par_spec_csv = pd.read_csv(os.path.join(pathSplat, str(idx) + '.csv'))
+        par_freq = list(par_spec_csv['frequencies'])
+        par_int = list(par_spec_csv['intensities'])
+
+        for p in range(len(par_int)):
+            if par_int[p] >= line_int_value/10:
+                print(par_int[p])
+                print(par_freq[p])
+                hasCandidate = True
+
+    else:
+        if li == 'CDMS':
+            par_freq, par_int = getCatCDMSCheck(ta, par[0:2])
+        elif li == 'JPL':
+            par_freq,par_int = getCatJPLCheck(ta, par[0:2])
+
+        for p in range(len(par_int)):
+
+            if par_int[p] >= line_int_value/10:
+                print(par_int[p])
+                print(par_freq[p])
+                hasCandidate = True
+
+    print('')
+    return hasCandidate
+
+
 def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFrequencies, correctFreq,
                      edges, countDict, oldHighestIntensities, intensity, forms, linelists, tags,
-                     previous_best, quantum_nums, oldHighestSmiles, newDetSmiles, sorted_dict_last):
+                     previous_best, quantum_nums, oldHighestSmiles, newCalc, sorted_dict_last, loopIter):
     '''
     This function runs the graph-based ranking system given the detected smiles.
     It then takes the molecular candidates for a given line and checks the frequency and
@@ -612,7 +871,7 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
 
     # running graph calculation.
     reportListForward = []
-    if newDetSmiles == True:
+    if newCalc == True and len(detectedSmiles) > 0:
         nodeDictInit = {}
         nodeDict = {}
         for smile in smiles:
@@ -633,13 +892,17 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
                 updateNode = edge[0]
                 partner = edge[1]
                 partnerCount = countDict[partner]
-                addedValue = nodeDict[partner] / (1.5 * partnerCount)
+                if partnerCount != 0:
+                    addedValue = nodeDict[partner] / (1.5 * partnerCount)
+                else:
+                    addedValue = 0
+                    
                 intermediateDict[updateNode] = intermediateDict[updateNode] + addedValue
 
             # checking if the scores have converged
             converged = True
             for z in intermediateDict:
-                if abs(intermediateDict[z] - nodeDict[z]) > 1e-10:
+                if abs(intermediateDict[z] - nodeDict[z]) > 1e-5:
                     converged = False
                     break
 
@@ -652,6 +915,8 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
         sorted_dict.reverse()
     else:
         sorted_dict = sorted_dict_last
+
+
 
     # storing graph scores
     newSmiles = [z[0] for z in sorted_dict]
@@ -672,8 +937,22 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
         qn = quantum_nums[idx]
 
         # checking the intensity match
-        maxInt, molRank, closestFreq = checkIntensity(tag, linelist, formula, intensity, freq)
+        maxInt, molRank, closestFreq, line_int_value, thick = checkIntensityForward(tag, linelist, formula, intensity, freq, loopIter)
         rule_out_val = checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full, rms)
+
+
+        #rule_out_val = False
+
+        if correctFreq in sigmaDict:
+            sigmaList = sigmaDict[correctFreq]
+            sigmaList.append((formula,freq,rule_out_val))
+            sigmaDict[correctFreq] = sigmaList
+        else:
+            sigmaDict[correctFreq] = [(formula,freq,rule_out_val)]
+
+
+        #print(sigmaDict[correctFreq])
+
 
         hasInvalid = False
         mol = Chem.MolFromSmiles(smile)
@@ -681,15 +960,22 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
             if atom.GetSymbol() not in validAtoms:
                 hasInvalid = True
 
-        if testSmiles[idx] in newSmiles:
-            newIdx = newSmiles.index(testSmiles[idx])
-            value = newValues[newIdx]
-            per = stats.percentileofscore(newValues, value)
+        if len(detectedSmiles) > 0:
+            if testSmiles[idx] in newSmiles:
+                newIdx = newSmiles.index(testSmiles[idx])
+                value = newValues[newIdx]
+                per = stats.percentileofscore(newValues, value)
+            else:
+                value = 0
+                per = 0.1
         else:
-            value = 0
-            per = 0.1
+            value = 10
+            per = 100
 
         tu = [smile, per, formula, qn, value, iso]
+
+        if per < 93:
+            newReport.append('Structural relevance score not great. ')
 
         # scaling the score based on the frequency match
         offset = freq - correctFreq
@@ -699,14 +985,15 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
             newReport.append('Frequency match not great.')
 
         # scaling the score based on the intensity match
-        if maxInt > 10 * maxObservedInt:
+        if maxInt > 6 * maxObservedInt:
             scaledPer = 0.5 * scaledPer
             newReport.append(
-                'Intensity suggests that there should be unreasonably strong lines of this molecule in the spectrum. ')
+                'Intensity suggests that there should be unreasonably strong lines of this molecule in the spectrum.')
 
         if rule_out_val == True:
             scaledPer = 0.5 * scaledPer
             newReport.append('Too many of the simulated 10 sigma lines of this molecule are not present.')
+
 
         if molRank > 25 and formula not in previousBest:
             scaledPer = 0.5 * scaledPer
@@ -714,13 +1001,15 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
                 'This is the strongest observed line of this molecule in the spectrum, but it is simulated to be the  number ' + str(
                     molRank) + ' strongest transition.')
 
+        
+
         if formula in oldHighestIntensities:
-            if maxInt > 10 * oldHighestIntensities[formula]:
+            if maxInt > 5 * oldHighestIntensities[formula]:
                 scaledPer = 0.5 * scaledPer
                 newReport.append('The simulated relative intensities do not match with what is observed.')
 
         else:
-            if maxInt > 10 * intensity:
+            if maxInt > 5 * intensity:
                 scaledPer = 0.5 * scaledPer
                 newReport.append(
                     'This is the strongest observed line of this molecule in spectrum but is simulated to be too weak.')
@@ -736,7 +1025,7 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
             scaledPer = 0.5 * scaledPer
             newReport.append('Contains an invalid atom.')
 
-        tu2 = [smile, scaledPer, formula, qn, value, iso]
+        tu2 = [smile, scaledPer, formula, thick, qn, value, iso]
         testingScoresFreq_Updated.append(tu2)
 
         testingScores.append(tu)
@@ -779,9 +1068,11 @@ def runPageRankInit2(smiles, detectedSmiles, testSmiles, testSmilesIso, testFreq
 
 
 
+
+
 def scaleScoreReverse(smile, validAtoms, subReport, sorted_smiles, sorted_values, freq, correctFreq, molRank, maxInt,
                       form, newPreviousBest, newHighestIntensities, intensityReverse, iso, qn, newHighestSmiles,
-                      rule_out_reverse):
+                      rule_out_reverse, line_int_value, linelist, tag):
     '''
     This function scales the score of a molecule based on its frequency and intensity match along with
     the molecular composition (i.e. invalid atoms or isotopologues).
@@ -795,24 +1086,33 @@ def scaleScoreReverse(smile, validAtoms, subReport, sorted_smiles, sorted_values
     for atom in mol.GetAtoms():
         if atom.GetSymbol() not in validAtoms:
             hasInvalid = True
+    if len(detectedSmiles) > 0:
+        if smile in sorted_smiles:
+            idx2 = sorted_smiles.index(smile)
+            value = sorted_values[idx2]
+            per = stats.percentileofscore(sorted_values, value)
+        else:
+            value = 0.1
+            per = 0
 
-    if smile in sorted_smiles:
-        idx2 = sorted_smiles.index(smile)
-        value = sorted_values[idx2]
-        per = stats.percentileofscore(sorted_values, value)
     else:
-        value = 0.1
-        per = 0
+        value = 10
+        per = 100
+
+    if per < 93:
+        subReport.append('Structural relevance score not great. ')
 
     # scaling score based on frequency match
     offset = freq - correctFreq
     scale = 1 - abs(offset / 5)
     scaledPer = scale * per
+
+
     if scale < 0.93:
         subReport.append('Frequency match not great. ')
 
     # next several lines scale the score based on intensity match
-    if maxInt > 10 * maxObservedInt:
+    if maxInt > 6 * maxObservedInt:
         subReport.append(
             'Intensity suggests that there should be unreasonably strong lines of this molecule in the spectrum. ')
         scaledPer = 0.5 * scaledPer
@@ -821,18 +1121,20 @@ def scaleScoreReverse(smile, validAtoms, subReport, sorted_smiles, sorted_values
         subReport.append('Too many of the simulated 10 sigma lines of this molecule are not present. ')
         scaledPer = 0.5 * scaledPer
 
+
     if molRank > 25 and form not in newPreviousBest:
         subReport.append(
             'This is the strongest observed line of this molecule in the spectrum, but it is simulated to be the number ' + str(
                 molRank) + ' strongest transition. ')
         scaledPer = 0.5 * scaledPer
-
+    
+    
     if form in newHighestIntensities:
-        if maxInt > 10 * newHighestIntensities[form]:
+        if maxInt > 5 * newHighestIntensities[form]:
             subReport.append('The simulated relative intensities do not match with what is observed. ')
             scaledPer = 0.5 * scaledPer
     else:
-        if maxInt > 10 * intensityReverse:
+        if maxInt > 5 * intensityReverse:
             subReport.append(
                 'This is the strongest observed line of this molecule in spectrum but is simulated to be too weak. ')
             scaledPer = 0.5 * scaledPer
@@ -842,6 +1144,8 @@ def scaleScoreReverse(smile, validAtoms, subReport, sorted_smiles, sorted_values
         if smile not in newHighestSmiles or intensityReverse > (0.08 ** iso) * newHighestSmiles[smile]:
             subReport.append('Isotopologue is too strong.')
             scaledPer = 0.5 * scaledPer
+
+
 
     # scaling score if there's an invalid atom.
     if hasInvalid == True:
@@ -930,13 +1234,16 @@ def runPageRankInit2_Final(smiles, detectedSmiles, edges, countDict):
             updateNode = edge[0]
             partner = edge[1]
             partnerCount = countDict[partner]
-            addedValue = nodeDict[partner] / (1.5 * partnerCount)
+            if partnerCount != 0:
+                addedValue = nodeDict[partner] / (1.5 * partnerCount)
+            else:
+                addedValue = 0
             intermediateDict[updateNode] = intermediateDict[updateNode] + addedValue
 
         converged = True
         # checking for convergence
         for z in intermediateDict:
-            if abs(intermediateDict[z] - nodeDict[z]) > 1e-10:
+            if abs(intermediateDict[z] - nodeDict[z]) > 1e-7:
                 converged = False
                 break
 
@@ -1144,7 +1451,9 @@ def checkIntensityOutput(tag, linelist, molForm, line_int, molFreq, low, high):
 
     return scaledFreqs, scaledInts, stickFreqs, stickInts
 
-
+opticalScales = [1,5,10,20,30,40,50,60,70,80,90,100,150]
+opticallyThick = []
+sigmaDict = {}
 # The following lines are required for querying CDMS efficiently
 cdmsMolsFull = ['003501 HD', '004501 H2D+', '005501 HD2+', '005502 HeH+', '012501 C-atom', '012502 BH', '012503 C+',
                 '013501 C-13', '013502 CH', '013503 CH+', '013504 CH+, v=1-0', '013505 CH+, v=2-0', '013506 C-13-+',
@@ -1442,7 +1751,16 @@ del vectorDF
 del full
 del edge
 
-localYN_input = input('Do you have catalogs on your local computer that you would like to consider (y/n): \n')
+found_loc = False
+
+while found_loc == False:
+    localYN_input = input('Do you have catalogs on your local computer that you would like to consider (y/n): \n')
+    if localYN_input == 'y' or localYN_input == 'Y' or localYN_input == 'n' or localYN_input == 'N':
+        found_loc = True
+    else:
+        print('Invalid input. Please just type y or n')
+        print('')
+
 if 'y' in localYN_input or 'Y' in localYN_input:
     localYN = True
 else:
@@ -1468,7 +1786,7 @@ print('')
 temp = float(input('Please enter the experimental temperature (in Kelvin): \n'))
 print('')
 validInput = input(
-    'Which atoms could feasibly be present in the mixture?\n If you type default, the valid atoms will be set to C, O, H, N, and S \n If you type all, all atoms in the periodic table will be considered \n If you would like to specify, please separate the atoms by commas (i.e. type C,O,S for carbon, oxygen and sulfur)\n')
+    'Which atoms could feasibly be present in the mixture?\n If you type default, the valid atoms will be set to C, O, H, N, and S \n If you type all, all atoms in the periodic table will be considered. It is highly recommended that you specify, however. \n If you would like to specify, please separate the atoms by commas (i.e. type C,O,S for carbon, oxygen and sulfur)\n')
 print('')
 validLower = ''.join(validInput.split()).lower()
 validSpace = ''.join(validInput.split())
@@ -1497,43 +1815,66 @@ else:
         if i != '':
             validAtoms.append(i)
 
-csvType = input(
-    'You need to input the SMILES strings of the initial detected molecules. \n If you would like to type them individually, type 1. If you would like to input a csv file, type 2: \n')
+found_det = False
+while found_det == False:
+    hasDetInp = input('Do you have any known molecular precursors? (y/n): \n')
+    if hasDetInp == 'y' or hasDetInp == 'Y' or hasDetInp == 'n' or hasDetInp == 'N':
+        found_det = True
+    else:
+        print('Invalid input. Please just type y or n')
+        print('')
+
 
 print('')
+if 'y' in hasDetInp or 'Y' in hasDetInp:
+    hasDetInp = True
+else:
+    hasDetInp = False
 
-if '1' in csvType:
-    validStart = False
-    while validStart == False:
-        startingMols1 = input(
-            'Enter the SMILES strings of the initial detected molecules. Please separate the SMILES string with a comma: \n')
-        try:
-            startingMolsSpace = ''.join(startingMols1.split())
-            startingMols2 = startingMolsSpace.split(',')
-            startingMols = [Chem.MolToSmiles(Chem.MolFromSmiles(u)) for u in startingMols2]
-            validStart = True
-            print('')
+if hasDetInp == False:
+    startingMols = []
 
-        except:
-            print('You entered an invalid SMILES. ')
+if hasDetInp == True:
+    csvType = input(
+        'You need to input the SMILES strings of the initial detected molecules. \n If you would like to type them individually, type 1. If you would like to input a csv file, type 2: \n')
 
-elif '2' in csvType:
-    validStart = False
-    while validStart == False:
-        try:
-            csvDetPath = input(
-                'Please enter path to csv file. This needs to have the detected molecules in a column listed "SMILES." \n')
-            csvDetPath = ''.join(csvDetPath.split())
-            dfDet = pd.read_csv(csvDetPath)
-            startingMols2 = list(dfDet['SMILES'])
-            startingMols = [Chem.MolToSmiles(Chem.MolFromSmiles(u)) for u in startingMols2]
-            validStart = True
-            print('')
-        except:
-            print('There is an invalid SMILES in your .csv')
+    print('')
 
-astro = input('Is this an astronomical observation (y/n) - the code is currently only set up for single dish observations.\n')
-print('')
+    if '1' in csvType:
+        validStart = False
+        while validStart == False:
+            startingMols1 = input(
+                'Enter the SMILES strings of the initial detected molecules. Please separate the SMILES string with a comma: \n')
+            try:
+                startingMolsSpace = ''.join(startingMols1.split())
+                startingMols2 = startingMolsSpace.split(',')
+                startingMols = [Chem.MolToSmiles(Chem.MolFromSmiles(u)) for u in startingMols2]
+                validStart = True
+                print('')
+
+            except:
+                print('You entered an invalid SMILES. ')
+
+    elif '2' in csvType:
+        validStart = False
+        while validStart == False:
+            try:
+                csvDetPath = input(
+                    'Please enter path to csv file. This needs to have the detected molecules in a column listed "SMILES." \n')
+                csvDetPath = ''.join(csvDetPath.split())
+                dfDet = pd.read_csv(csvDetPath)
+                startingMols2 = list(dfDet['SMILES'])
+                startingMols = [Chem.MolToSmiles(Chem.MolFromSmiles(u)) for u in startingMols2]
+                validStart = True
+                print('')
+            except:
+                print('There is an invalid SMILES in your .csv')
+
+#astro = input('Is this an astronomical observation (y/n) - the code is currently only set up for single dish observations.\n')
+#print('')
+
+astro = 'n'
+
 if 'y' in astro or 'Y' in astro:
     dishSize = input('Please input the dish size in meters:\n')
     dishSize = float(dishSize)
@@ -1609,7 +1950,15 @@ else:
     print('These are the artifact frequencies I found:')
     print(artifactFreqs)
 
-    artInput1 = input('Do you suspect any of these are actually molecular signal? (y/n)\n')
+    found_art1 = False
+    while found_art1 == False:
+        artInput1 = input('Do you suspect any of these are actually molecular signal? (y/n)\n')
+        if artInput1 == 'y' or artInput1 == 'Y' or artInput1 == 'n' or artInput1 == 'N':
+            found_art1 = True
+        else:
+            print('Invalid input. Please just type y or n')
+            print('')
+
     if 'y' in artInput1 or 'Y' in artInput1:
         print('')
         artValue = input('Ok, please provide the exact frequencies and separate them with commas.\n')
@@ -1626,7 +1975,16 @@ else:
 
     # need to raise exception about smiles
     print('')
-    artInput = input('Are there any other known instrument artifact frequencies? (y/n)\n')
+    found_art2 = False
+    while found_art2 == False:
+        artInput = input('Are there any other known instrument artifact frequencies? (y/n)\n')
+        if artInput == 'y' or artInput == 'Y' or artInput == 'n' or artInput == 'N':
+            found_art2 = True
+        else:
+            print('Invalid input. Please just type y or n')
+            print('')
+
+
     if 'y' in artInput or 'Y ' in artInput:
         print('')
         art2 = input('OK great! Please type the artifact frequencies and separate them with commas.\n')
@@ -1640,17 +1998,29 @@ else:
 
 print('')
 
-print('Thanks for the input! Making the dataset now.')
+print('Thanks for the input! Making the dataset now. This will take a few minutes.')
+tickScrape = time.perf_counter()
+
 
 pathLocal = os.path.join(direc, 'local_catalogs')
-os.mkdir(pathLocal)
-
 pathSplat = os.path.join(direc, 'splatalogue_catalogues')
-os.mkdir(pathSplat)
+pathExtra = os.path.join(direc, 'added_catalogs')
 
+if os.path.isdir(pathSplat):
+    shutil.rmtree(pathSplat)
+
+if os.path.isdir(pathLocal):
+    shutil.rmtree(pathLocal)
+
+if os.path.isdir(pathExtra):
+    shutil.rmtree(pathExtra)
+
+
+os.mkdir(pathSplat)
+os.mkdir(pathLocal)
 pathSplatCat = os.path.join(pathSplat, 'catalogues')
 os.mkdir(pathSplatCat)
-
+os.mkdir(pathExtra)
 
 
 #if 'y' in astro or 'Y' in astro:
@@ -1716,6 +2086,8 @@ peak_freqs = peak_freqs3
 print('')
 print('Number of peaks at ' + str(sig) + ' sigma significance in the spectrum: ' + str(len(peak_freqs)))
 print('')
+
+print('')
 # sorting peaks by intensity
 combPeaks = [(peak_freqs[i], peak_ints[i]) for i in range(len(peak_freqs))]
 sortedCombPeaks = sortTupleArray(combPeaks)
@@ -1745,21 +2117,6 @@ for i in range(len(spectrum_freqs)):
     if spectrum_freqs.count(spectrum_freqs[i]) == 1:
         matrix.append([spectrum_freqs[i], spectrum_ints[i]])
 
-allCDMSMols = []
-allCDMSFreqs = []
-
-print('querying all of cdms')
-for e in range(len(cdmsMolsFull)):
-    cdmsQuery = CDMS.query_lines(min_frequency=(ll0[0]) * u.MHz, max_frequency=(ul0[-1]) * u.MHz,
-                                 molecule=cdmsMolsFull[e])
-    cdmsDF = cdmsQuery.to_pandas()
-    cdmsFreqs = list(cdmsDF['FREQ'])
-    if 'No lines found' not in cdmsFreqs:
-        for v in range(len(cdmsFreqs)):
-            allCDMSMols.append(cdmsMolsFull[e])
-            allCDMSFreqs.append(cdmsFreqs[v])
-
-print('done with query')
 
 # adding local lines to dataset
 newMatrix = []
@@ -1774,17 +2131,19 @@ catalogList = []
 fullCount = 0
 
 localSmiles = []
+alreadyChecked = []
+
 
 '''
 Finding all candidate lines from .cat files in local directory.
 '''
-
+localYN = True
 if localYN == True:
     for filename in os.listdir(localDirec):
         q = os.path.join(localDirec, filename)
         # checking if it is a file
         if os.path.isfile(q) and q.endswith(
-                '.cat') and 'super' not in q and '.DS_Store' not in q and 'z_heptenediyne_1' not in q and 'hc6n_rc' not in q and 'OC_CN_2' not in q and 'allene_u01' not in q and 'c4h4o_isomer4' not in q:
+                '.cat') and 'super' not in q and '.DS_Store' not in q and 'hc6n_rc' not in q and 'OC_CN_2' not in q and 'allene_u01' not in q and 'c4h4o_isomer4' not in q:
             dfFreq = pd.DataFrame()
             splitName = q.split('.cat')
             splitName2 = splitName[0].split('/')
@@ -1875,6 +2234,25 @@ print('')
 print('querying splatalogue')
 print('')
 
+
+def find_indices_within_threshold(values, target, threshold=0.5):
+    """
+    Find indices of values within a certain threshold of the target value using NumPy.
+
+    Parameters:
+    values (list of floats): List of values to search through.
+    target (float): The target value to compare against.
+    threshold (float): The threshold distance from the target value.
+
+    Returns:
+    list of int: Indices of the values within the threshold distance from the target.
+    """
+    values_array = np.array(values)
+    indices = np.where(np.abs(values_array - target) <= threshold)[0]
+    return indices.tolist()
+
+
+
 molSmileDF = pd.read_csv(direc + 'all_splat_smiles.csv')
 dataframeMols = list(molSmileDF['mol'])
 dataframeSmiles = list(molSmileDF['smiles'])
@@ -1895,7 +2273,8 @@ invalid = ['Manganese monoxide', 'Bromine Dioxide',
            'Yttrium monosulfide', 'Chloryl chloride', '3-Silanetetrayl-1,2-Propadienylidene ', 'Calcium monochloride',
            'Nickel monocarbonyl', 'Scandium monochloride', 'Potassium cyanide, potassium isocyanide',
            'Silicon Tetracarbide',
-           'Calcium monoisocyanide']
+           'Calcium monoisocyanide', 'Iron Monocarbonyl', 'Calcium Monomethyl', 'Bromine Monoxide', 'Cobalt carbide', 'Hypobromous acid',
+           'Aluminum Isocyanitrile']
 
 savedForms = []
 savedList = []
@@ -1903,11 +2282,23 @@ savedTags = []
 savedCatIndices = []
 savedComb = []
 
+rowComb = []
+
 catCount = 0
+
 
 fullMatrix = []
 fullMatrix.append(newMatrix[0])
 del newMatrix[0]
+
+cdmsDirec =  direc  + 'cdms_cats_final/'
+cdmsFullDF = pd.read_csv(direc + 'all_cdms_final_official.csv')
+cdmsForms = list(cdmsFullDF['splat form'])
+cdmsNames = list(cdmsFullDF['splat name'])
+cdmsTags = list(cdmsFullDF['cat'])
+cdmsSmiles = list(cdmsFullDF['smiles'])
+cdmsTags = [t[1:-4] for t in cdmsTags]
+
 
 '''
 The following loop combines queries of Splatalogue, CDMS, and JPL to get all candidate molecules
@@ -1915,331 +2306,163 @@ for all of the lines in the spectrum along with the required information. For al
 the spectrum is simulated at the inputted experimental temperature and saved in the 
 splatalogue_catalogs directory.
 '''
-for n in range(len(spectrum_freqs)):
-    row = newMatrix[n]
-    rowComb = []
-    jplMolsAlready = []
-    indivFreq = spectrum_freqs[n]
-    try:
-        splatQuery = Get_Catalog(indivFreq + 0.5, indivFreq - 0.5)
-        freqs = list(splatQuery['frequency'])
-        forms = list(splatQuery['molformula'])
-        names = list(splatQuery['chemicalname'])
-        catnames = list(splatQuery['catname'])
-        formNo = list(splatQuery['molformula_noparens'])
-        qns = list(splatQuery['QNs'])
-    except:
-        catnames = []
 
-    for z in range(len(catnames)):
-        if names[z] not in invalid:
-            if names[z] in dataframeMols:
-                idx2 = dataframeMols.index(names[z])
-                smile = dataframeSmiles[idx2]
-            else:
-                smile = 'NEEDS SMILES'
-            if (n, smile) not in localSmiles:
-                isValid = True
-                if catnames[z] == 'JPL':
-                    if forms[z] in jplTagMols:
-                        idx = jplTagMols.index(forms[z])
-                        indivTag = jplTags[idx]
-                        if (forms[z], catnames[z], indivTag) not in savedComb:
-                            isValid = getCatJPL(indivTag, catCount)
-                            if isValid == True:
-                                savedForms.append(forms[z])
-                                savedCatIndices.append(catCount)
-                                savedTags.append(indivTag)
-                                savedList.append(catnames[z])
-                                savedComb.append((forms[z], catnames[z], indivTag))
+for i in range(len(cdmsTags)):
+    dfFreq = pd.DataFrame()
+    q = cdmsDirec + str(cdmsTags[i]) + '.cat'
+    mol = molsim.file_handling.load_mol(q, type='SPCAT')
+    smile = cdmsSmiles[i]
+    molPresent = False
 
-                            catCount += 1
+    catObj = mol.catalog
+    freqs = list(catObj.frequency)
+    uncs = list(catObj.freq_err)
 
-                        if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                            row.append(names[z])
-                            row.append(forms[z])
-                            row.append(smile)
-                            row.append(freqs[z])
-                            row.append(0)
-                            row.append(hasIso(forms[z]))
-                            row.append(qns[z])
-                            row.append(indivTag)
-                            row.append('JPL')
-                            jplMolsAlready.append(forms[z])
-                            rowComb.append((names[z], forms[z], freqs[z]))
-
-                            if smile not in alreadyChecked:
-                                alreadyChecked.append(smile)
-                                if smile not in smiles and 'NEED' not in smile:
-                                    print('adding ' + smile + ' to graph')
-                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
-                                                                                                    smiles, countDict,
-                                                                                                    allVectors,
-                                                                                                    vectorSmiles)
+    for row in newMatrix:
+        freq = float(row[0])
+        if smile not in row:
+            close_idx = find_indices_within_threshold(freqs, freq)
+            if len(close_idx) != 0:
+                molPresent = True
+                for q in close_idx:
+                    row.append(cdmsNames[i])
+                    row.append(cdmsForms[i])
+                    row.append(smile)
+                    row.append(freqs[q])
+                    row.append(uncs[q])
+                    row.append(hasIso(cdmsForms[i]))
+                    row.append('cdms')
+                    row.append(cdmsTags[i])
+                    row.append('CDMS')
+                    #jplMolsAlready.append(forms[z])
+                    #rowComb.append((cdmsNames[i], cdmsForms[i], freqs[q]))
 
 
-                    else:
-                        try:
-                            jplQuery = JPLSpec.query_lines(min_frequency=(indivFreq - 0.5) * u.MHz,
-                                                           max_frequency=(indivFreq + 0.5) * u.MHz)
-                            jplDF = jplQuery.to_pandas()
-                            jplFreq = list(jplDF['FREQ'])
-                            jplTag = list(jplDF['TAG'])
-                            found = False
-                            if len(jplFreq) > 0:
-                                for q in range(len(jplFreq)):
+    if molPresent == True:
+        if smile not in alreadyChecked:
+            alreadyChecked.append(smile)
+            if smile not in smiles and 'NEED' not in smile:
+                print('adding ' + smile + ' to graph')
+                edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
+                                                                                smiles, countDict,
+                                                                                allVectors,
+                                                                                vectorSmiles)
 
-                                    if float(jplFreq[q]) == float(freqs[z]) and found == False:
-                                        indivTag = jplTag[q]
-                                        found = True
-                            if found == True:
-                                if (forms[z], catnames[z], indivTag) not in savedComb:
-                                    isValid = getCatJPL(indivTag, catCount)
-                                    if isValid == True:
-                                        savedForms.append(forms[z])
-                                        savedCatIndices.append(catCount)
-                                        savedTags.append(indivTag)
-                                        savedList.append(catnames[z])
-                                        savedComb.append((forms[z], catnames[z], indivTag))
+        if 'y' in astro or 'Y' in astro:
+            observatory1 = molsim.classes.Observatory(dish=dishSize)
+            observation1 = molsim.classes.Observation(observatory=observatory1)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0)
+            sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                            res=0.0014, observation=observation1)
+        else:
+            src = molsim.classes.Source(Tex=temp, column=1.E9)
+            sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                            res=0.0014)
 
-                                    catCount += 1
-                                if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                                    row.append(names[z])
-                                    row.append(forms[z])
-                                    row.append(smile)
-                                    row.append(freqs[z])
-                                    row.append(0)
-                                    row.append(hasIso(forms[z]))
-                                    row.append(qns[z])
-                                    row.append(indivTag)
-                                    row.append('JPL')
-                                    jplMolsAlready.append(forms[z])
-                                    rowComb.append((names[z], forms[z], freqs[z]))
+        peak_freqs2 = sim.spectrum.frequency
+        peak_ints2 = sim.spectrum.Tb
+        if peak_ints2 is not None:
+            freqs = list(peak_freqs2)
+            ints = list(peak_ints2)
+            dfFreq['frequencies'] = freqs
+            dfFreq['intensities'] = ints
+            saveName = os.path.join(pathSplat, str(catCount) + '.csv')
+            dfFreq.to_csv(saveName)
 
-                                    if smile not in alreadyChecked:
-                                        alreadyChecked.append(smile)
-                                        if smile not in smiles and 'NEED' not in smile:
-                                            print('adding ' + smile + ' to graph')
-                                            edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile,
-                                                                                                            edges,
-                                                                                                            smiles,
-                                                                                                            countDict,
-                                                                                                            allVectors,
-                                                                                                            vectorSmiles)
-                        except:
-                            pass
-                elif catnames[z] == 'CDMS' and forms[z] not in jplMolsAlready:
-                    if forms[z] in cdmsTagMols:
-                        idx = cdmsTagMols.index(forms[z])
-                        indivTag = cdmsTags[idx]
-                        if (forms[z], catnames[z], indivTag) not in savedComb:
-                            isValid = getCatCDMS(indivTag, catCount)
-                            if isValid == True:
-                                savedForms.append(forms[z])
-                                savedCatIndices.append(catCount)
-                                savedTags.append(indivTag)
-                                savedList.append(catnames[z])
-                                savedComb.append((forms[z], catnames[z], indivTag))
+            savedCatIndices.append(catCount)
+            # catalogNames.append(jplNames[i])
+            savedForms.append(cdmsForms[i])
+            savedTags.append(cdmsTags[i])
+            savedList.append('CDMS')
 
-                                catCount += 1
-
-                        if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                            row.append(names[z])
-                            row.append(forms[z])
-                            row.append(smile)
-                            row.append(freqs[z])
-                            row.append(0)
-                            row.append(hasIso(forms[z]))
-                            row.append(qns[z])
-                            row.append(indivTag)
-                            row.append('CDMS')
-                            rowComb.append((names[z], forms[z], freqs[z]))
-                            if smile not in alreadyChecked:
-                                alreadyChecked.append(smile)
-                                if smile not in smiles and 'NEED' not in smile:
-                                    print('adding ' + smile + ' to graph')
-                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
-                                                                                                    smiles, countDict,
-                                                                                                    allVectors,
-                                                                                                    vectorSmiles)
-                    else:
-                        foundCDMS = False
-                        if forms[z] in cdmsMols:
-                            idx = cdmsMols.index(forms[z])
-                            cdmsQuery = CDMS.query_lines(min_frequency=(indivFreq - 0.5) * u.MHz,
-                                                         max_frequency=(indivFreq + 0.5) * u.MHz,
-                                                         molecule=cdmsMolsFull[idx])
-                            cdmsDF = cdmsQuery.to_pandas()
-                            cdmsFreqs = list(cdmsDF['FREQ'])
-                            cdmsUnc = list(cdmsDF['ERR'])
-
-                            foundCDMS = True
-
-                            for x in range(len(cdmsFreqs)):
-                                if 'No lines found' not in cdmsFreqs:
-                                    if cdmsFreqs[x] == freqs[z]:
-                                        if (forms[z], catnames[z], cdmsTagsFull[idx]) not in savedComb:
-                                            isValid = getCatCDMS(cdmsTagsFull[idx], catCount)
-                                            if isValid == True:
-                                                savedForms.append(forms[z])
-                                                savedCatIndices.append(catCount)
-                                                savedTags.append(cdmsTagsFull[idx])
-                                                savedList.append(catnames[z])
-                                                savedComb.append((forms[z], catnames[z], cdmsTagsFull[idx]))
-                                                catCount += 1
-                                        if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                                            row.append(names[z])
-                                            row.append(forms[z])
-                                            row.append(smile)
-                                            row.append(cdmsFreqs[x])
-                                            row.append(cdmsUnc[x])
-                                            row.append(hasIso(forms[z]))
-                                            row.append(qns[z])
-                                            row.append(cdmsTagsFull[idx])
-                                            row.append('CDMS')
-                                            rowComb.append((names[z], forms[z], freqs[z]))
-
-                                            if smile not in alreadyChecked:
-                                                alreadyChecked.append(smile)
-                                                if smile not in smiles and 'NEED' not in smile:
-                                                    print('adding ' + smile + ' to graph')
-                                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(
-                                                        smile, edges,
-                                                        smiles, countDict,
-                                                        allVectors,
-                                                        vectorSmiles)
-                                                    
-
-                        elif names[z] in cdmsMols and foundCDMS == False:
-                            idx = cdmsMols.index(names[z])
-                            cdmsQuery = CDMS.query_lines(min_frequency=(indivFreq - 0.5) * u.MHz,
-                                                         max_frequency=(indivFreq + 0.5) * u.MHz,
-                                                         molecule=cdmsMolsFull[idx])
-                            cdmsDF = cdmsQuery.to_pandas()
-                            cdmsFreqs = list(cdmsDF['FREQ'])
-                            cdmsUnc = list(cdmsDF['ERR'])
-
-                            foundCDMS = True
-
-                            for x in range(len(cdmsFreqs)):
-                                if 'No lines found' not in cdmsFreqs:
-                                    if cdmsFreqs[x] == freqs[z]:
-                                        if (forms[z], catnames[z], cdmsTagsFull[idx]) not in savedComb:
-                                            isValid = getCatCDMS(cdmsTagsFull[idx], catCount)
-                                            if isValid == True:
-                                                savedForms.append(forms[z])
-                                                savedCatIndices.append(catCount)
-                                                savedTags.append(cdmsTagsFull[idx])
-                                                savedList.append(catnames[z])
-                                                savedComb.append((forms[z], catnames[z], cdmsTagsFull[idx]))
-                                                catCount += 1
-                                        if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                                            row.append(names[z])
-                                            row.append(forms[z])
-                                            row.append(smile)
-                                            row.append(cdmsFreqs[x])
-                                            row.append(cdmsUnc[x])
-                                            row.append(hasIso(forms[z]))
-                                            row.append(qns[z])
-                                            row.append(cdmsTagsFull[idx])
-                                            row.append('CDMS')
-                                            rowComb.append((names[z], forms[z], freqs[z]))
-
-                                            if smile not in alreadyChecked:
-                                                alreadyChecked.append(smile)
-                                                if smile not in smiles and 'NEED' not in smile:
-                                                    print('adding ' + smile + ' to graph')
-                                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(
-                                                        smile, edges,
-                                                        smiles, countDict,
-                                                        allVectors,
-                                                        vectorSmiles)
-                                                    # print(row)
-
-                        elif formNo[z] in cdmsMols and foundCDMS == False:
-                            idx = cdmsMols.index(formNo[z])
-                            cdmsQuery = CDMS.query_lines(min_frequency=(indivFreq - 0.5) * u.MHz,
-                                                         max_frequency=(indivFreq + 0.5) * u.MHz,
-                                                         molecule=cdmsMolsFull[idx])
-                            cdmsDF = cdmsQuery.to_pandas()
-                            cdmsFreqs = list(cdmsDF['FREQ'])
-                            cdmsUnc = list(cdmsDF['ERR'])
-
-                            foundCDMS = True
-
-                            for x in range(len(cdmsFreqs)):
-                                if 'No lines found' not in cdmsFreqs:
-                                    if cdmsFreqs[x] == freqs[z]:
-                                        if (forms[z], catnames[z], cdmsTagsFull[idx]) not in savedComb:
-                                            isValid = getCatCDMS(cdmsTagsFull[idx], catCount)
-                                            if isValid == True:
-                                                savedForms.append(forms[z])
-                                                savedCatIndices.append(catCount)
-                                                savedTags.append(cdmsTagsFull[idx])
-                                                savedList.append(catnames[z])
-                                                savedComb.append((forms[z], catnames[z], cdmsTagsFull[idx]))
-                                                catCount += 1
-                                        if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                                            row.append(names[z])
-                                            row.append(forms[z])
-                                            row.append(smile)
-                                            row.append(cdmsFreqs[x])
-                                            row.append(cdmsUnc[x])
-                                            row.append(hasIso(forms[z]))
-                                            row.append(qns[z])
-                                            row.append(cdmsTagsFull[idx])
-                                            row.append('CDMS')
-                                            rowComb.append((names[z], forms[z], freqs[z]))
-                                            if smile not in alreadyChecked:
-                                                alreadyChecked.append(smile)
-                                                if smile not in smiles and 'NEED' not in smile:
-                                                    print('adding ' + smile + ' to graph')
-                                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(
-                                                        smile, edges,
-                                                        smiles, countDict,
-                                                        allVectors,
-                                                        vectorSmiles)
-                                                    
+        catCount += 1
 
 
-                        else:
-                            if freqs[z] in allCDMSFreqs:
-                                idxC = allCDMSFreqs.index(freqs[z])
-                                molFull = allCDMSMols[idxC]
-                                idx = cdmsMolsFull.index(molFull)
-                                if (forms[z], catnames[z], cdmsTagsFull[idx]) not in savedComb:
-                                    isValid = getCatCDMS(cdmsTagsFull[idx], catCount)
-                                    if isValid == True:
-                                        savedForms.append(forms[z])
-                                        savedCatIndices.append(catCount)
-                                        savedTags.append(cdmsTagsFull[idx])
-                                        savedList.append(catnames[z])
-                                        savedComb.append((forms[z], catnames[z], cdmsTagsFull[idx]))
-                                        catCount += 1
+jplDirec = direc  + 'jpl_cats/'
+jplFullDF = pd.read_csv(direc  + 'all_jpl_final_official.csv')
+jplForms = list(jplFullDF['splat form'])
+jplNames = list(jplFullDF['splat name'])
+jplTags = list(jplFullDF['save tag'])
+jplSmiles = list(jplFullDF['smiles'])
 
-                                if (names[z], forms[z], freqs[z]) not in rowComb and isValid == True:
-                                    row.append(names[z])
-                                    row.append(forms[z])
-                                    row.append(smile)
-                                    row.append(freqs[z])
-                                    row.append(0)
-                                    row.append(hasIso(forms[z]))
-                                    row.append(qns[z])
-                                    row.append(cdmsTagsFull[idx])
-                                    row.append('CDMS')
-                                    rowComb.append((names[z], forms[z], freqs[z]))
 
-                                    if smile not in alreadyChecked:
-                                        alreadyChecked.append(smile)
-                                        if smile not in smiles and 'NEED' not in smile:
-                                            print('adding ' + smile + ' to graph')
-                                            edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile,
-                                                                                                            edges,
-                                                                                                            smiles,
-                                                                                                            countDict,
-                                                                                                            allVectors,
-                                                                                                            vectorSmiles)
 
+
+
+for i in range(len(jplTags)):
+    dfFreq = pd.DataFrame()
+    q = jplDirec + str(jplTags[i]) + '.cat'
+    mol = molsim.file_handling.load_mol(q, type='SPCAT')
+    smile = jplSmiles[i]
+
+    catObj = mol.catalog
+    freqs = list(catObj.frequency)
+    uncs = list(catObj.freq_err)
+
+    molPresent = False
+
+    for row in newMatrix:
+        freq = float(row[0])
+        if smile not in row:
+            close_idx = find_indices_within_threshold(freqs, freq)
+            if len(close_idx) != 0:
+                molPresent = True
+                for q in close_idx:
+                    row.append(jplNames[i])
+                    row.append(jplForms[i])
+                    row.append(smile)
+                    row.append(freqs[q])
+                    row.append(uncs[q])
+                    row.append(hasIso(jplForms[i]))
+                    row.append('jpl')
+                    row.append(jplTags[i])
+                    row.append('JPL')
+                    # jplMolsAlready.append(forms[z])
+                    #rowComb.append((cdmsNames[i], cdmsForms[i], freqs[q]))
+
+    if molPresent == True:
+        if smile not in alreadyChecked:
+            alreadyChecked.append(smile)
+            if smile not in smiles and 'NEED' not in smile:
+                print('adding ' + smile + ' to graph')
+                edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
+                                                                                smiles, countDict,
+                                                                                allVectors,
+                                                                                vectorSmiles)
+
+        if 'y' in astro or 'Y' in astro:
+            observatory1 = molsim.classes.Observatory(dish=dishSize)
+            observation1 = molsim.classes.Observation(observatory=observatory1)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0)
+            sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                            res=0.0014, observation=observation1)
+        else:
+            src = molsim.classes.Source(Tex=temp, column=1.E9)
+            sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
+                                            res=0.0014)
+
+        peak_freqs2 = sim.spectrum.frequency
+        peak_ints2 = sim.spectrum.Tb
+        if peak_ints2 is not None:
+            freqs = list(peak_freqs2)
+            ints = list(peak_ints2)
+            dfFreq['frequencies'] = freqs
+            dfFreq['intensities'] = ints
+            saveName = os.path.join(pathSplat, str(catCount) + '.csv')
+            dfFreq.to_csv(saveName)
+
+            savedCatIndices.append(catCount)
+            # catalogNames.append(jplNames[i])
+            savedForms.append(jplForms[i])
+            savedTags.append(jplTags[i])
+            savedList.append('JPL')
+
+        catCount += 1
+
+
+
+
+for row in newMatrix:
     numMols = int((len(row) - 2) / 9)
     if len(row) > 2:
         rem = maxMols - numMols
@@ -2432,8 +2655,52 @@ else:
 
         fullMatrix = finalMatrix
 
+
+tockScrape = time.perf_counter()
+
+
+#print('saving things')
+'''
+keysList = list(countDict.keys())
+valueList = list(countDict.values())
+
+countDF = pd.DataFrame()
+countDF['smiles'] = keysList
+countDF['count'] = valueList
+
+countDF.to_csv(direc + 'counts_update.csv')
+del countDF
+
+edgeDF = pd.DataFrame()
+edgeDF['edges'] = listToString(edges)
+edgeDF.to_csv(direc + 'edges_update.csv')
+del edgeDF
+
+smilesDF = pd.DataFrame()
+smilesDF['smiles'] = smiles
+smilesDF.to_csv(direc + 'smiles_update.csv')
+del smilesDF
+
+vectorDF = pd.DataFrame()
+vectorDF['smiles'] = vectorSmiles
+listVectors = list(allVectors)
+#print(len(listVectors))
+#print(len(listVectors[0]))
+#print(type(listVectors))
+#print(type(listVectors[0]))
+vectorDF['vectors'] = listToString(listVectors)
+vectorDF.to_csv(direc + 'vectors_update.csv')
+
+'''
+
+
+
 print('')
 print('Ok, thanks! Now running the assignment algorithm.')
+print('')
+scrapeMins = (tockScrape-tickScrape)/60
+scrapeMins2 = "{{:.{}f}}".format(2).format(scrapeMins)
+print('Catalog scraping took ' + str(scrapeMins2) + ' minutes.')
 
 mol_smileMols = []
 mol_smileSmiles = []
@@ -2456,6 +2723,7 @@ dfMolSmiles.to_csv(os.path.join(direc, 'mol_smiles.csv'))
 formDF = pd.read_csv(os.path.join(pathSplatCat, 'catalog_list.csv'))
 totalForms = list(formDF['formula'])
 totalTags = list(formDF['tags'])
+#totalTags = [str(i) for i in totalTags]
 totalIndices = list(formDF['idx'])
 
 formDF_local = pd.read_csv(os.path.join(direc, 'local_catalogs/catalog_list_local.csv'))
@@ -2517,7 +2785,7 @@ for row in matrix:
     allQn.append(rowQN)
 
 maxObservedInt = intensities[0]  # maximum intensity line in the dataset (required for intensity checks)
-
+#print(maxObservedInt)
 
 
 # setting threshold values
@@ -2543,6 +2811,14 @@ rankingListFinal = []
 testingScoresList = []
 testingScoresListFinal = []
 sorted_dict_last = {}
+updateCounter = 0
+
+parent_csv = pd.read_csv(os.path.join(direc, 'parent_list.csv'))
+mol_par = list(parent_csv['mol'])
+list_par = list(parent_csv['linelist'])
+mol_parent = list(parent_csv['parent'])
+list_parent = list(parent_csv['parent list'])
+tag_parent = list(parent_csv['parent tag'])
 
 overallLength = len(actualFrequencies)
 
@@ -2558,6 +2834,10 @@ for i in range(len(actualFrequencies)):
         globalThresh = 99
 
     if len(allSmiles[i]) > 0:
+
+        loopIter = i
+
+
         # getting all molecular candidates for a line.
         correctFreq = actualFrequencies[i]
         testSmiles = allSmiles[i]
@@ -2570,6 +2850,7 @@ for i in range(len(actualFrequencies)):
 
         intensityValue = intensities[i]
 
+
         # running graph based ranking algorithm and obtaining scores for each molecular candidate.
         # This function call includes the checking of structural relevance, frequency, and intensity match.
 
@@ -2577,10 +2858,25 @@ for i in range(len(actualFrequencies)):
                        oldHighestIntensities, intensityValue, forms, linelists, tags, previousBest, qns,
                        oldHighestSmiles, newDetSmiles, sorted_dict_last]
 
+        newCalc = False
+        if len(detectedSmiles) == 0:
+            newCalc = False
+        else:
+            if newDetSmiles == True:
+                if len(detectedSmiles) < 7:
+                    newCalc = True
+                else:
+                    updateCounter += 1
+                    if updateCounter == 5:
+                        newCalc = True
+                        updateCounter = 0
+
+
+
         testingScoresFinal, testingScoresSmiles, softScores, ranking, testingScores, sorted_dict, globalScores, sortedTuplesCombined = runPageRankInit2(
             smiles, detectedSmiles, testSmiles, testIso, testFrequencies, correctFreq, edges,
             countDict, oldHighestIntensities, intensityValue, forms, linelists, tags, previousBest,
-            qns, oldHighestSmiles, newDetSmiles, sorted_dict_last)
+            qns, oldHighestSmiles, newCalc, sorted_dict_last, loopIter)
         
         sorted_dict_last = sorted_dict
 
@@ -2602,6 +2898,12 @@ for i in range(len(actualFrequencies)):
     # getting information on top ranked molecule for the line in question
     topSmile = testingScoresFinal[0][0]
     topGlobalScore = testingScoresFinal[0][1]
+    #print('top score tau')
+    #print(testingScoresFinal[0][3])
+    #if testingScoresFinal[0][3] == True and topGlobalScore > globalThresh:
+    #    opticallyThick.append(topSmile)
+    #    print('optically thick! ' + topSmile)
+    #    print(opticallyThick)
 
     for testingSmilesIdx in range(len(sortedTuplesCombined)):
         if sortedTuplesCombined[testingSmilesIdx][0][0] == topSmile:
@@ -2611,7 +2913,9 @@ for i in range(len(actualFrequencies)):
 
     override = {}
 
-    if newDetSmiles == True:
+
+
+    if newCalc == True:
 
         # Now re-checking all previous assignments
         if len(indicesBefore) > 0:
@@ -2633,6 +2937,8 @@ for i in range(len(actualFrequencies)):
 
                 report = []
 
+                sigmaListReverse = sigmaDict[correctFreq]
+
                 for z in range(len(testSmiles)):
                     # looking at the candidate molecules for each line
                     subReport = []
@@ -2645,8 +2951,25 @@ for i in range(len(actualFrequencies)):
                     qn = qnsReverse[z]
 
                     # checking intensity and frequency match for all candidate molecules
-                    maxInt, molRank, closestFreq = checkIntensity(tag, linelist, form, intensityReverse, freq)
-                    rule_out_reverse = checkAllLines(linelist, form, tag, freq, peak_freqs_full, peak_ints_full, rms)
+                    maxInt, molRank, closestFreq, line_int_value = checkIntensity(tag, linelist, form, intensityReverse, freq)
+
+
+                    foundSig = False
+                    for sig in sigmaListReverse:
+                        if sig[0] == form and sig[1] == freq:
+                            rule_out_reverse = sig[2]
+                            foundSig = True
+
+                    if foundSig == False:
+                        rule_out_reverse = True
+                        print('not present in rule out reverse')
+                        
+
+
+                    #rule_out_reverse = False
+
+
+                    #rule_out_reverse = checkAllLines(linelist, form, tag, freq, peak_freqs_full, peak_ints_full, rms)
                     tu2, subReport, scaledPer, offset, value, per = scaleScoreReverse(smile, validAtoms, subReport,
                                                                                       sorted_smiles, sorted_values,
                                                                                       freq, correctFreq, molRank,
@@ -2654,7 +2977,7 @@ for i in range(len(actualFrequencies)):
                                                                                       newHighestIntensities,
                                                                                       intensityReverse, iso, qn,
                                                                                       newHighestSmiles,
-                                                                                      rule_out_reverse)
+                                                                                      rule_out_reverse, line_int_value, linelist, tag)
                     newIndexTest.append(tu2)
                     report.append(subReport)
 
@@ -2766,6 +3089,28 @@ print('')
 # Running calculation and checking all lines one final time
 sorted_dict, sorted_smiles, sorted_values = runPageRankInit2_Final(smiles, detectedSmiles, edges, countDict)
 
+#saving the highest ranked non-detected molecules
+candidate_mols = []
+for smi in sorted_smiles:
+    if len(candidate_mols) < 10000:
+        candidate_mols.append(smi)
+
+dfCand = pd.DataFrame()
+dfCand['smiles'] = candidate_mols
+dfCand.to_csv(os.path.join(direc,'u_line_candidates.csv'))
+
+idxListCharge = []
+idxListRad = []
+
+for i in range(len(candidate_mols)):
+    if '+' not in candidate_mols[i] and '-' not in candidate_mols[i]:
+        idxListCharge.append(i)
+
+dfCharge = dfCand.iloc[idxListCharge]
+dfCharge.to_csv(os.path.join(direc,'u_line_candidates_non_charged.csv'))
+
+
+
 newTestingScoresListFinal = []
 newDetectedSmiles = {}
 newPreviousBest = []
@@ -2795,6 +3140,8 @@ for index in indicesAll:
     report = []
     newIndexTestOrd = []
 
+    sigmaListReverse = sigmaDict[correctFreq]
+
     # looping for all candidate molecules for each line
     for z in range(len(testSmiles)):
         subReport = []
@@ -2806,9 +3153,23 @@ for index in indicesAll:
         tag = tagsReverse[z]
         qn = qnsReverse[z]
 
+        foundSig = False
+        for sig in sigmaListReverse:
+            if sig[0] == form and sig[1] == freq:
+                rule_out_reverse = sig[2]
+                foundSig = True
+
+        if foundSig == False:
+            rule_out_reverse = True
+            print('not present in rule out reverse')
+            
+
+
+        #rule_out_reverse = False
+
         # scaling scores based on intensity and frequency match
-        maxInt, molRank, closestFreq = checkIntensity(tag, linelist, form, intensityReverse, freq)
-        rule_out_reverse = checkAllLines(linelist, form, tag, freq, peak_freqs_full, peak_ints_full, rms)
+        maxInt, molRank, closestFreq, line_int_value = checkIntensity(tag, linelist, form, intensityReverse, freq)
+        #rule_out_reverse = checkAllLines(linelist, form, tag, freq, peak_freqs_full, peak_ints_full, rms)
         tu2, subReport, scaledPer, offset, value, per = scaleScoreReverse(smile, validAtoms, subReport,
                                                                           sorted_smiles, sorted_values,
                                                                           freq, correctFreq, molRank,
@@ -2816,7 +3177,7 @@ for index in indicesAll:
                                                                           newHighestIntensities,
                                                                           intensityReverse, iso, qn,
                                                                           newHighestSmiles,
-                                                                          rule_out_reverse)
+                                                                          rule_out_reverse, line_int_value, linelist, tag)
 
         newIndexTestOrd.append(tu2)
         newIndexTest.append(tu2)
@@ -2847,9 +3208,12 @@ tock = time.perf_counter()
 f = open(os.path.join(direc, 'output_report.txt'), "w")
 
 f.write('Initial Detected Molecules: ')
-for u in startingMols:
-    f.write(str(u))
-    f.write(' ')
+if len(startingMols) == 0:
+    f.write('Nothing inputted')
+else:
+    for u in startingMols:
+        f.write(str(u))
+        f.write(' ')
 f.write('\n')
 totalTime = (tock - tick) / 60
 
@@ -2960,7 +3324,7 @@ f.write('\n')
 The remainder of the code creates the interactive html output. It predominately uses Plotly figures
 for interactivity. 
 '''
-
+'''
 data = molsim.file_handling.load_obs(specPath, type='txt')
 ll0, ul0 = molsim.functions.find_limits(data.spectrum.frequency)
 freq_arr = data.spectrum.frequency
@@ -2968,19 +3332,16 @@ int_arr = data.spectrum.Tb
 resolution = data.spectrum.frequency[1] - data.spectrum.frequency[0]
 ckm = (scipy.constants.c * 0.001)
 min_separation = resolution * ckm / np.amax(freq_arr)
-peak_indices = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=sig)
-peak_freqs_new = data.spectrum.frequency[peak_indices]
+#peak_indices = find_peaks(freq_arr, int_arr, res=resolution, min_sep=0.5, sigma=5, local_rms = True)
+#peak_freqs = np.array(specDF['frequency'])
+#peak_ints = np.array(specDF['intensity'])
+
+peak_indices = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=3)
+peak_freqs = data.spectrum.frequency[peak_indices]
 peak_ints = abs(data.spectrum.Tb[peak_indices])
-peak_ints_new = abs(data.spectrum.Tb[peak_indices])
-peak_freqs_vlsr = []
 
-for i in peak_freqs_new:
-    off = i * vlsr_value / 299792
-    newFreq = i + off
-    peak_freqs_vlsr.append(newFreq)
-
-peak_freqs_vlsr = np.array(peak_freqs_vlsr)
-peak_freqs = np.array(peak_freqs_vlsr)
+peak_freqs_new = peak_freqs
+peak_ints_new = peak_ints
 
 peak_freqs_og = peak_freqs
 
@@ -3026,8 +3387,15 @@ peak_ints = peak_ints3
 peak_freqs = peak_freqs3
 
 
+peak_ints = [peak_ints[i] for i in range(len(peak_ints)) if within2(peak_freqs[i], fullArts) == False]
+peak_indices = [peak_indices[i] for i in range(len(peak_indices)) if within2(peak_freqs[i], fullArts) == False]
+peak_freqs = [peak_freqs[i] for i in range(len(peak_freqs)) if within2(peak_freqs[i], fullArts) == False]
+
 peak_freqs_new = peak_freqs3New
 peak_ints_new = peak_ints3New
+
+peak_ints_new = [peak_ints_new[i] for i in range(len(peak_ints_new)) if within2(peak_freqs_new[i], fullArts) == False]
+peak_freqs_new = [peak_freqs_new[i] for i in range(len(peak_freqs_new)) if within2(peak_freqs_new[i], fullArts) == False]
 
 
 combPeaks = [(peak_freqs[i], peak_ints[i]) for i in range(len(peak_freqs))]
@@ -3168,7 +3536,7 @@ count100 = 0
 for u in freq_arr:
     nearby = False
     for q in allAssignFreqs:
-        if abs(u - q) <= 0.7:
+        if abs(u - q) <= 1.5:
             nearby = True
 
     if nearby == True:
@@ -3215,11 +3583,14 @@ fig.update_layout(
     title='Spectrum with assignments (green for uniquely assigned, red for unassigned, yellow for multiple possible candidates)',
     xaxis_title='Frequency (MHz)', yaxis_title='Intensity (arb.)', height=500)
 startingText = 'Initial Precursor Molecules: '
-for p in startingMols:
-    if p != startingMols[-1]:
-        startingText = startingText + p + ', '
-    else:
-        startingText = startingText + p
+if len(startingMols) == 0:
+    startingText = startingText + 'Nothing inputted'
+else:
+    for p in startingMols:
+        if p != startingMols[-1]:
+            startingText = startingText + p + ', '
+        else:
+            startingText = startingText + p
 
 
 text_content = """
@@ -3292,7 +3663,7 @@ count100 = 0
 for u in freq_arr:
     nearby = False
     for q in peak_freqs_og:
-        if abs(u - q) <= 0.75:
+        if abs(u - q) <= 1.5:
             if q in artifactFreqs or inAddedArt(q, added_art) == True:
                 nearby = True
 
@@ -3365,3 +3736,4 @@ with open(os.path.join(direc, 'interactive_output.html'), 'w') as f:
     f.write(html_content)
 
 print('Thank you for using this software! An interactive output (titled interactive_output.html) and a detailed line-by-line output (titled output.txt) are saved to your requested directory. Please send any questions/bugs to zfried@mit.edu')
+'''
