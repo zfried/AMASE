@@ -25,5 +25,5 @@ Notable Output Files:
 5. u_line_candidates.csv: The top-scored molecules from the structural relevance metric following the assignment of every line. These can be used as starting points (either via rotational constant calculations or follow-up experiments) for assigning the unidentified lines.
 
 
-If you run into any issues, feel free to reach out to zfried@mit.edu
+If you run into any issues or have any requests, feel free to reach out to zfried@mit.edu
 
