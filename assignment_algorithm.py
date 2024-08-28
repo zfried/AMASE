@@ -842,8 +842,9 @@ def checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full,
             filteredCombList.append(comb1)
     '''
 
-    filteredCombList = [i for i in combList if i[1] > 10 * rms]
-
+    filteredCombList1 = [i for i in combList if i[1] > 10 * rms]
+    filteredCombList = [i for i in filteredCombList1 if i[0] != closestFreq]
+    
     correct = 0
 
     tolerance = 0.2
@@ -858,6 +859,20 @@ def checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full,
 
         if correct / len(filteredCombList) < 0.5 and len(filteredCombList) > 1:
             rule_out = True
+
+    else:
+        filteredCombList1 = [i for i in combList if i[1] >= 5 * rms]
+        filteredCombList = [i for i in filteredCombList1 if i[0] != closestFreq]
+        if len(filteredCombList) > 1:
+            for target_value in filteredCombList:
+                inThere = np.any(
+                    (peak_freqs_full >= target_value[0] - tolerance) & (peak_freqs_full <= target_value[0] + tolerance))
+
+                if inThere == True:
+                    correct += 1
+
+            if correct / len(filteredCombList) < 0.3 and len(filteredCombList) > 1:
+                rule_out = True
 
 
     return rule_out
