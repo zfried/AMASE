@@ -18,7 +18,7 @@ Additional file requirements:
 2. If you choose to provide the algorithm with precursor molecules (recommended), you will have the choice of either typing the SMILES strings individually or inputting a .csv file with this information. If a .csv file is selected, this will need to have a column titled 'smiles' that provides each of the SMILES strings. 
 
 Notable Output Files:
-1. dataset_final.csv: This is the entire dataset containing all peak frequencies and intensities along with the molecular candidates determined by querying Splatalogue as well as provided local catalogs.
+1. dataset_final.csv: This is the entire dataset containing all peak frequencies and intensities along with the molecular candidates determined by querying CDMS/JPL as well as provided local catalogs.
 2. interactive_output.html: A file containing several interactive Plotly graphs and tables that describe each of the assigned lines and molecules. This is especially useful for manual quality checks. 
 3. output_report.txt: An in-depth description of every line assignment, detailing why each molecular candidate was or wasn't assigned.
 4. final_assignment_table.csv: A .csv file containing all of the line assignments.
