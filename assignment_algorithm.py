@@ -589,7 +589,7 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
         per = 100
 
     hasInvalid = False
-    mol = Chem.MolFromSmiles(smile)
+    mol = Chem.MolFromSmiles(smile_input)
     for atom in mol.GetAtoms():
         if atom.GetSymbol() not in validAtoms:
             hasInvalid = True
@@ -599,7 +599,7 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
 
     # scaling the score based on the frequency match
     offset = freq_cat - correctFreq
-    scale = 1 - abs(offset / 5)
+    scale = 1 - abs(offset / 4)
     scaledPer = scale * per
     if scale < 0.93:
         molecule_report.append('Frequency match not great.')
@@ -1155,6 +1155,29 @@ if hasDetInp == True:
 
 #astro = input('Is this an astronomical observation (y/n) - the code is currently only set up for single dish observations.\n')
 #print('')
+'''
+inputtedRMS = False
+
+found_rms = False
+while found_rms == False:
+    hasRMSInp = input('Do you want to manually input the RMS noise level? (y/n) \n Otherwise, the algorithm will determine it automatically: \n')
+    if hasRMSInp == 'y' or hasRMSInp == 'Y':
+        inputtedRMS = True
+        found_rms = True
+    elif hasRMSInp == 'n' or hasRMSInp == 'N':
+        found_rms = True
+    else:
+        print('Invalid input. Please just type y or n')
+        print('')
+
+if inputtedRMS == True:
+    rms = input('Please enter the RMS noise level of data:\n')
+    rms = float(rms)
+'''
+
+inputtedRMS = False
+
+
 
 astro = 'n'
 
@@ -1174,7 +1197,9 @@ if 'y' in astro or 'Y' in astro:
     added_art = []
 
 else:
+
     vlsr_value = 0
+    '''
     print('Determining suspected artifact frequencies\n')
     print('')
 
@@ -1278,6 +1303,12 @@ else:
 
     else:
         added_art = []
+    '''
+
+
+
+added_art = []
+artifactFreqs =[]
 
 print('')
 
@@ -1335,7 +1366,11 @@ peak_freqs = np.array(peak_freqs_vlsr)
 peak_indices_full = molsim.analysis.find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=2)
 peak_freqs_full = data.spectrum.frequency[peak_indices_full]
 peak_ints_full = abs(data.spectrum.Tb[peak_indices_full])
-rms = molsim.stats.get_rms(int_arr)
+if inputtedRMS == False:
+    rms = molsim.stats.get_rms(int_arr)
+
+print('noise level determined to be: ' + str(rms))
+print('')
 
 peak_freqs_vlsr = []
 
@@ -2054,6 +2089,7 @@ for i in range(len(actualFrequencies)):
 
     # after iteration 100, the threshold is increased from 93 to 99 since the priors should
     # be more informed at this point.
+
     if i >= 100:
         globalThresh = 99
 
@@ -2092,6 +2128,7 @@ for i in range(len(actualFrequencies)):
 
 
         testingScoresFinal, testingScoresSmiles, softScores, testingScores, sorted_dict, globalScores, sortedTuplesCombined, topSmile, topGlobalScore, topMol, topScore, bestReport_forward = forwardRun(correctFreq, sorted_dict_last)
+
         sorted_dict_last = sorted_dict
         sorted_smiles = [q[0] for q in sorted_dict]
         sorted_values = [q[1] for q in sorted_dict]
@@ -2198,6 +2235,7 @@ for i in range(len(actualFrequencies)):
         for newDet in newDetectedSmiles:
             if newDet not in detectedSmiles:
                 newDetSmiles = True
+
         detectedSmiles = newDetectedSmiles
         oldTestingScoresListFull = newTestingScoresListFinal
         oldBestReportsFull = newBestReportsFinal
@@ -2259,12 +2297,14 @@ for i in range(len(actualFrequencies)):
 
                 if dfSmiles[moleculeIndex] not in oldHighestSmiles:
                     oldHighestSmiles[dfSmiles[moleculeIndex]] = topOverrideIntensity
+
     # updating progress bar
     printProgressBar(i + 1, overallLength, prefix='Progress:', suffix='Complete', length=50)
 
 
 print('running final iteration, just a few more minutes!')
 print('')
+
 
 # Running calculation and checking all lines one final time
 sorted_dict, sorted_smiles, sorted_values = runGraphRanking(smiles, detectedSmiles, edges, countDict)
@@ -2713,7 +2753,7 @@ count100 = 0
 for u in freq_arr:
     nearby = False
     for q in allAssignFreqs:
-        if abs(u - q) <= 0.7:
+        if abs(u - q) <= 1:
             nearby = True
 
     if nearby == True:
