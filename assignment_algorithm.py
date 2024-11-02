@@ -599,7 +599,7 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
 
     # scaling the score based on the frequency match
     offset = freq_cat - correctFreq
-    scale = 1 - abs(offset / 4)
+    scale = 1 - abs(offset / 3.5)
     scaledPer = scale * per
     if scale < 0.93:
         molecule_report.append('Frequency match not great.')
@@ -830,7 +830,7 @@ def updateDetected_Highest(sortedNewTest, newHighestIntensities, intensityRevers
     after a line is evaluated.
     '''
     for sorted_test in sortedNewTest:
-        if sorted_test[1] > globalThresh:
+        if sorted_test[1] > globalThreshOriginal:
             if sorted_test[2] not in newHighestIntensities:
                 newHighestIntensities[sorted_test[2]] = intensityReverse
             if sorted_test[0] not in newHighestSmiles:
@@ -875,7 +875,7 @@ def updateMainScores(testingScoresFinal, startingMols, newDetectedSmiles, sorted
         newDetectedSmiles[start] = 1
 
     for sorted_test in testingScoresFinal:
-        if sorted_test[1] > globalThresh:
+        if sorted_test[1] > globalThreshOriginal:
             if sorted_test[2] not in newHighestIntensities:
                 newHighestIntensities[sorted_test[2]] = intensityValue
             if sorted_test[0] not in newHighestSmiles:
@@ -2246,7 +2246,7 @@ for i in range(len(actualFrequencies)):
         oldHighestSmiles = newHighestSmiles
     else:
         for teVal in testingScoresFinal:
-            if teVal[1] > globalThresh:
+            if teVal[1] > globalThreshOriginal:
                 if teVal[2] not in oldHighestIntensities:
                     oldHighestIntensities[teVal[2]] = intensityValue
                 if teVal[0] not in oldHighestSmiles:
@@ -2413,6 +2413,8 @@ for index in indicesAll:
         sortedNewTest, newHighestIntensities, intensityReverse, newPreviousBest, bestScore, thresh,
         bestGlobalScore, globalThresh, newDetectedSmiles, override, intensities, newCombinedScoresList,
         newHighestSmiles)
+
+
 
 tock = time.perf_counter()
 
