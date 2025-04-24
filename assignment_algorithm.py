@@ -1017,6 +1017,7 @@ print('Thanks! Just a second, uploading dataset now.')
 alreadyChecked = []
 alreadyOut = []
 
+cont = molsim.classes.Continuum(type='thermal', params=0.0)
 
 edge = pd.read_csv(os.path.join(direc, 'edges.csv'))
 edges = edgeStringToList(list(edge['edges']))
@@ -1474,11 +1475,11 @@ if localYN == True:
             if 'y' in astro or 'Y' in astro:
                 observatory1 = molsim.classes.Observatory(dish=dishSize)
                 observation1 = molsim.classes.Observation(observatory=observatory1)
-                src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=dv_value)
+                src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=dv_value, continuum = cont)
                 sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                                 res=0.0014, observation=observation1)
             else:
-                src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15)
+                src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15,continuum = cont)
                 sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                                 res=0.0014)
             peak_freqs2 = sim.spectrum.frequency
@@ -1654,11 +1655,11 @@ for i in range(len(cdmsTags)):
         if 'y' in astro or 'Y' in astro:
             observatory1 = molsim.classes.Observatory(dish=dishSize)
             observation1 = molsim.classes.Observation(observatory=observatory1)
-            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0, continuum = cont)
             sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                             res=0.0014, observation=observation1)
         else:
-            src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15, continuum = cont)
             sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                             res=0.0014)
 
@@ -1733,11 +1734,11 @@ for i in range(len(jplTags)):
         if 'y' in astro or 'Y' in astro:
             observatory1 = molsim.classes.Observatory(dish=dishSize)
             observation1 = molsim.classes.Observation(observatory=observatory1)
-            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, size=sourceSize, dV=0, continuum = cont)
             sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                             res=0.0014, observation=observation1)
         else:
-            src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15)
+            src = molsim.classes.Source(Tex=temp, column=1.E9, dV = 0.15, continuum = cont)
             sim = molsim.classes.Simulation(mol=mol, ll=minFreq, ul=maxFreq, source=src, line_profile='Gaussian',
                                             res=0.0014)
 
