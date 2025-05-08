@@ -576,7 +576,7 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
 
     molecule_report = []
 
-    if len(detectedSmiles) > 0:
+    if len(detectedSmiles) > 0 and consider_structure == True:
         if smile_input in graph_smiles:
             newIdx = graph_smiles.index(smile_input)
             value = graph_values[newIdx]
@@ -587,6 +587,9 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
     else:
         value = 10
         per = 100
+
+
+    #print(per)
 
     hasInvalid = False
     mol = Chem.MolFromSmiles(smile_input)
@@ -1065,6 +1068,9 @@ if localYN == True:
     dfIso = list(df['iso'])
 
 print('')
+
+
+
 sig = int(input('What sigma lines do you want to consider (6 is recommended)?\n'))
 print('')
 temp = float(input('Please enter the experimental temperature (in Kelvin): \n'))
@@ -1099,23 +1105,46 @@ else:
         if i != '':
             validAtoms.append(i)
 
-found_det = False
-while found_det == False:
-    hasDetInp = input('Do you have any known molecular precursors? (y/n): \n')
-    if hasDetInp == 'y' or hasDetInp == 'Y' or hasDetInp == 'n' or hasDetInp == 'N':
-        found_det = True
+
+#consider_structure = False
+found_cs = False
+while found_cs == False:
+    csInp = input('Do you want to consider structural relevence? If not, only the spectroscopy will be considered (y/n): \n')
+    if csInp == 'y' or csInp == 'Y':
+        consider_structure = True
+        found_cs = True
+    elif csInp == 'n' or csInp == 'N':
+        consider_structure = False
+        found_cs = True
     else:
         print('Invalid input. Please just type y or n')
         print('')
 
 
 print('')
-if 'y' in hasDetInp or 'Y' in hasDetInp:
-    hasDetInp = True
+
+if consider_structure == True:
+    found_det = False
+    while found_det == False:
+        hasDetInp = input('Do you have any known molecular precursors? (y/n): \n')
+        if hasDetInp == 'y' or hasDetInp == 'Y' or hasDetInp == 'n' or hasDetInp == 'N':
+            found_det = True
+        else:
+            print('Invalid input. Please just type y or n')
+            print('')
+
+
+    print('')
+    if 'y' in hasDetInp or 'Y' in hasDetInp:
+        hasDetInp = True
+    else:
+        hasDetInp = False
+
+    if hasDetInp == False:
+        startingMols = []
+
 else:
     hasDetInp = False
-
-if hasDetInp == False:
     startingMols = []
 
 if hasDetInp == True:
@@ -2126,6 +2155,8 @@ for i in range(len(actualFrequencies)):
                     if updateCounter == 5:
                         newCalc = True
                         updateCounter = 0
+        if consider_structure == False:
+            newCalc = False
 
 
         testingScoresFinal, testingScoresSmiles, softScores, testingScores, sorted_dict, globalScores, sortedTuplesCombined, topSmile, topGlobalScore, topMol, topScore, bestReport_forward = forwardRun(correctFreq, sorted_dict_last)
@@ -2266,157 +2297,177 @@ for i in range(len(actualFrequencies)):
                 detectedSmiles[topSmile] = 1
                 newDetSmiles = True
         overNew = {}
+        if consider_structure == True:
+            for o in range(len(oldBestReportsFull)):
+                if len(oldBestReportsFull[o]) == 1 and 'Structural relevance' in oldBestReportsFull[o][0]:
+                    if oldTestingScoresListFull[o][0][2] not in overNew:
+                        overNew[oldTestingScoresListFull[o][0][2]] = 1
+                    else:
+                        overNew[oldTestingScoresListFull[o][0][2]] = overNew[oldTestingScoresListFull[o][0][2]] + 1
 
-        for o in range(len(oldBestReportsFull)):
-            if len(oldBestReportsFull[o]) == 1 and 'Structural relevance' in oldBestReportsFull[o][0]:
-                if oldTestingScoresListFull[o][0][2] not in overNew:
-                    overNew[oldTestingScoresListFull[o][0][2]] = 1
-                else:
-                    overNew[oldTestingScoresListFull[o][0][2]] = overNew[oldTestingScoresListFull[o][0][2]] + 1
+            for over in overNew:
+                if overNew[over] >= 3:
+                    oldTestingScoresFinalMols = [m[0][0][1] for m in oldCombinedTestingScoresList]
+                    firstMolIdx = [c for c, n in enumerate(oldTestingScoresFinalMols) if n == over][0]
+                    topOverrideIntensity = intensities[firstMolIdx]
+                    if over not in oldHighestIntensities:
+                        newDetSmiles = True
+                    elif oldHighestIntensities[over] != topOverrideIntensity:
+                        newDetSmiles = True
+                    oldHighestIntensities[over] = topOverrideIntensity
 
-        for over in overNew:
-            if overNew[over] >= 3:
-                oldTestingScoresFinalMols = [m[0][0][1] for m in oldCombinedTestingScoresList]
-                firstMolIdx = [c for c, n in enumerate(oldTestingScoresFinalMols) if n == over][0]
-                topOverrideIntensity = intensities[firstMolIdx]
-                if over not in oldHighestIntensities:
-                    newDetSmiles = True
-                elif oldHighestIntensities[over] != topOverrideIntensity:
-                    newDetSmiles = True
-                oldHighestIntensities[over] = topOverrideIntensity
+                    if over not in previousBest:
+                        previousBest.append(over)
 
-                if over not in previousBest:
-                    previousBest.append(over)
+                    molSmilesDF = pd.read_csv(os.path.join(direc, 'mol_smiles.csv'))
+                    dfMolecules = list(molSmilesDF['molecules'])
+                    dfSmiles = list(molSmilesDF['smiles'])
+                    moleculeIndex = dfMolecules.index(over)
+                    if dfSmiles[moleculeIndex] not in detectedSmiles:
+                        detectedSmiles[dfSmiles[moleculeIndex]] = 1
+                        newDetSmiles = True
 
-                molSmilesDF = pd.read_csv(os.path.join(direc, 'mol_smiles.csv'))
-                dfMolecules = list(molSmilesDF['molecules'])
-                dfSmiles = list(molSmilesDF['smiles'])
-                moleculeIndex = dfMolecules.index(over)
-                if dfSmiles[moleculeIndex] not in detectedSmiles:
-                    detectedSmiles[dfSmiles[moleculeIndex]] = 1
-                    newDetSmiles = True
+                    if dfSmiles[moleculeIndex] not in oldHighestSmiles:
+                        oldHighestSmiles[dfSmiles[moleculeIndex]] = topOverrideIntensity
 
-                if dfSmiles[moleculeIndex] not in oldHighestSmiles:
-                    oldHighestSmiles[dfSmiles[moleculeIndex]] = topOverrideIntensity
-
+    #if consider_structure == False:
+    #    detectedSmiles = {}
+    #    newDetectedSmiles = {}
     # updating progress bar
     printProgressBar(i + 1, overallLength, prefix='Progress:', suffix='Complete', length=50)
 
 
-print('running final iteration, just a few more minutes!')
-print('')
+if consider_structure == True or consider_structure == False:
+    print('running final iteration, just a few more minutes!')
+    print('')
 
 
-# Running calculation and checking all lines one final time
-sorted_dict, sorted_smiles, sorted_values = runGraphRanking(smiles, detectedSmiles, edges, countDict)
-newSmiles = [z[0] for z in sorted_dict]
-newValues = [z[1] for z in sorted_dict]
-#saving the highest ranked non-detected molecules
-candidate_mols = []
-for smi in sorted_smiles:
-    if len(candidate_mols) < 10000:
-        candidate_mols.append(smi)
+    # Running calculation and checking all lines one final time
+    if consider_structure == True:
+        sorted_dict, sorted_smiles, sorted_values = runGraphRanking(smiles, detectedSmiles, edges, countDict)
+        newSmiles = [z[0] for z in sorted_dict]
+        newValues = [z[1] for z in sorted_dict]
+        #saving the highest ranked non-detected molecules
+        candidate_mols = []
+        for smi in sorted_smiles:
+            if len(candidate_mols) < 10000:
+                candidate_mols.append(smi)
 
-dfCand = pd.DataFrame()
-dfCand['smiles'] = candidate_mols
-dfCand.to_csv(os.path.join(direc,'u_line_candidates.csv'))
+        dfCand = pd.DataFrame()
+        dfCand['smiles'] = candidate_mols
+        dfCand.to_csv(os.path.join(direc,'u_line_candidates.csv'))
 
-idxListCharge = []
-idxListRad = []
+        idxListCharge = []
+        idxListRad = []
 
-for i in range(len(candidate_mols)):
-    if '+' not in candidate_mols[i] and '-' not in candidate_mols[i]:
-        idxListCharge.append(i)
+        for i in range(len(candidate_mols)):
+            if '+' not in candidate_mols[i] and '-' not in candidate_mols[i]:
+                idxListCharge.append(i)
 
-dfCharge = dfCand.iloc[idxListCharge]
-dfCharge.to_csv(os.path.join(direc,'u_line_candidates_non_charged.csv'))
-
-
-newTestingScoresListFinal = []
-newBestReportsFinal = []
-newDetectedSmiles = {}
-newPreviousBest = []
-newCombinedScoresList = []
-newBestGlobalScoresFull = []
-topReverseSmiles = []
-newHighestIntensities = {}
-newHighestSmiles = {}
-override = {}
-indicesAll = list(range(len(allFrequencies)))
-
-allIndexTest = []
-allReports = []
-
-
-# looping through all lines
-for index in indicesAll:
-    newIndexTest = []
-    testSmiles = allSmiles[index]
-    testIso = allIso[index]
-    testFrequencies = allFrequencies[index]
-    intensityReverse = intensities[index]
-    formsReverse = molForms[index]
-    tagsReverse = molTags[index]
-    linelistsReverse = molLinelist[index]
-    qnsReverse = allQn[index]
-    correctFreq = actualFrequencies[index]
-    report = []
-    newIndexTestOrd = []
-
-    sigmaListReverse = sigmaDict[correctFreq]
-
-    # looping for all candidate molecules for each line
-    for z in range(len(testSmiles)):
-        subReport = []
-        smile = testSmiles[z]
-        freq = testFrequencies[z]
-        iso = testIso[z]
-        form = formsReverse[z]
-        linelist = linelistsReverse[z]
-        tag = tagsReverse[z]
-        qn = qnsReverse[z]
-
-        foundSig = False
-        for sig in sigmaListReverse:
-            if sig[0] == form and sig[1] == freq:
-                rule_out_reverse = sig[2]
-                foundSig = True
-
-        if foundSig == False:
-            rule_out_reverse = True
-            print('not present in rule out reverse')
-
-        tu2, subReport = spectroscopic_checks_single_molecule_final(smile,form,linelist,tag,iso,freq,qn,intensityReverse,newSmiles,newValues, iso, rule_out_reverse)
-        
-        
-
-        newIndexTestOrd.append(tu2)
-        newIndexTest.append(tu2)
-        report.append(subReport)
-    allIndexTest.append(newIndexTestOrd)
-    allReports.append(report)
-
-    # obtaining and storing scores
-
-    sortedTuplesCombinedReverse, sortedNewTest, bestSmile, bestGlobalScore, bestMol, bestScore, topGlobalScoreSecond, best, topReport = get_score_metrics(
-        newIndexTestOrd,report)
-
-    newBestReportsFinal.append(topReport)
-    newTestingScoresListFinal.append(sortedNewTest)
-    newCombinedScoresList.append(sortedTuplesCombinedReverse)
-    newBestGlobalScoresFull.append(bestGlobalScore)
-    topReverseSmiles.append(bestSmile)
-
-    # updating override counter
-    override = updateOverride(bestGlobalScore, globalThresh, bestMol, override, topReport)
-
-    newHighestIntensities, newPreviousBest, newDetectedSmiles, newHighestSmiles = updateDetected_Highest(
-        sortedNewTest, newHighestIntensities, intensityReverse, newPreviousBest, bestScore, thresh,
-        bestGlobalScore, globalThresh, newDetectedSmiles, override, intensities, newCombinedScoresList,
-        newHighestSmiles)
+        dfCharge = dfCand.iloc[idxListCharge]
+        dfCharge.to_csv(os.path.join(direc,'u_line_candidates_non_charged.csv'))
+    else:
+        sorted_dict = {}
+        newSmiles = [z[0] for z in sorted_dict]
+        newValues = [z[1] for z in sorted_dict]
+        #detectedSmiles = []
 
 
 
+    newTestingScoresListFinal = []
+    newBestReportsFinal = []
+    newDetectedSmiles = {}
+    newPreviousBest = []
+    newCombinedScoresList = []
+    newBestGlobalScoresFull = []
+    topReverseSmiles = []
+    newHighestIntensities = {}
+    newHighestSmiles = {}
+    override = {}
+    indicesAll = list(range(len(allFrequencies)))
+
+    allIndexTest = []
+    allReports = []
+
+
+    # looping through all lines
+    for index in indicesAll:
+        newIndexTest = []
+        testSmiles = allSmiles[index]
+        testIso = allIso[index]
+        testFrequencies = allFrequencies[index]
+        intensityReverse = intensities[index]
+        formsReverse = molForms[index]
+        tagsReverse = molTags[index]
+        linelistsReverse = molLinelist[index]
+        qnsReverse = allQn[index]
+        correctFreq = actualFrequencies[index]
+        report = []
+        newIndexTestOrd = []
+
+        sigmaListReverse = sigmaDict[correctFreq]
+
+        # looping for all candidate molecules for each line
+        for z in range(len(testSmiles)):
+            subReport = []
+            smile = testSmiles[z]
+            freq = testFrequencies[z]
+            iso = testIso[z]
+            form = formsReverse[z]
+            linelist = linelistsReverse[z]
+            tag = tagsReverse[z]
+            qn = qnsReverse[z]
+
+            foundSig = False
+            for sig in sigmaListReverse:
+                if sig[0] == form and sig[1] == freq:
+                    rule_out_reverse = sig[2]
+                    foundSig = True
+
+            if foundSig == False:
+                rule_out_reverse = True
+                print('not present in rule out reverse')
+
+            tu2, subReport = spectroscopic_checks_single_molecule_final(smile,form,linelist,tag,iso,freq,qn,intensityReverse,newSmiles,newValues, iso, rule_out_reverse)
+
+
+
+            newIndexTestOrd.append(tu2)
+            newIndexTest.append(tu2)
+            report.append(subReport)
+        allIndexTest.append(newIndexTestOrd)
+        allReports.append(report)
+
+        # obtaining and storing scores
+
+        sortedTuplesCombinedReverse, sortedNewTest, bestSmile, bestGlobalScore, bestMol, bestScore, topGlobalScoreSecond, best, topReport = get_score_metrics(
+            newIndexTestOrd,report)
+
+        newBestReportsFinal.append(topReport)
+        newTestingScoresListFinal.append(sortedNewTest)
+        newCombinedScoresList.append(sortedTuplesCombinedReverse)
+        newBestGlobalScoresFull.append(bestGlobalScore)
+        topReverseSmiles.append(bestSmile)
+
+        # updating override counter
+        override = updateOverride(bestGlobalScore, globalThresh, bestMol, override, topReport)
+
+        newHighestIntensities, newPreviousBest, newDetectedSmiles, newHighestSmiles = updateDetected_Highest(
+            sortedNewTest, newHighestIntensities, intensityReverse, newPreviousBest, bestScore, thresh,
+            bestGlobalScore, globalThresh, newDetectedSmiles, override, intensities, newCombinedScoresList,
+            newHighestSmiles)
+        #if consider_structure == False:
+        #    newDetectedSmiles = {}
+'''
+else:
+    newTestingScoresListFinal = oldTestingScoresListFull
+    newBestReportsFinal = oldBestReportsFull
+    newBestGlobalScoresFull= oldTestingScoresList
+
+    newCombinedScoresList= oldCombinedTestingScoresList
+    newHighestIntensities=oldHighestIntensities
+    newHighestSmiles = oldHighestSmiles 
+'''
 tock = time.perf_counter()
 
 # Writing the output file
