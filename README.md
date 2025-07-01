@@ -12,7 +12,7 @@ In order to run the algorithm you will need to take the following steps:
 
 followed by:
 
-`conda activate molsim`
+`conda activate amase_env`
 
 to change the Anaconda environment, and then
 
