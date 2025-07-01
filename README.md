@@ -4,12 +4,25 @@ Hello! The algorithm in the repository titled assignment_algorithm.py can be use
 
 It can currently be run laboratory mixtures. An algorithm for astronomical datasets is in development. Note: the algorithm is currently being updated with a more robust consideration of structural/chemical similarity. The current graph-based approach is applicable to mixtures with astrochemically-relevant molecules but a new graph would need to be generated for mixtures with notably different chemical compositions. The updated method will allow for any mixtures to be analyzed! 
 
-In order to run the algorithm you will need the following:
+In order to run the algorithm you will need to take the following steps:
 
-1.  The molsim Python package installed. Installation instructions can be found at the following link: https://github.com/bmcguir2/molsim
-2.  All of the packages imported in the Python script installed.
-3.  All of the files in the following Dropbox folder downloaded to the directory in which you want to save the algorithm outputs: https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0
-4.  A spectrum in the form of a .txt file with frequency values in one column and intensity values in another column.
+1.  Download the following folder (https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r&st=vbapia3j&dl=0). This is the molsim Python directory (https://github.com/bmcguir2/molsim) that is used for spectroscopic simulations but the conda.yml file, along with some minor code, has been updated to allow for easier installation of this algorithm.
+
+2.  CD into the donwloaded directory and create the required conda environment with the following command: `conda env create -n amase_env python=3.11 -f conda.yml`
+
+followed by:
+
+`conda activate molsim`
+
+to change the Anaconda environment, and then
+
+`pip install .`
+
+This should create a conda environment with all of the packages needed to run the assignment_algorithm.py script. If this is not working, please reach out to zfried@mit.edu. You will need to be in this conda environment to run the algorithm.
+
+
+3.  Download the assignment_algorithm.py file and all of the files in the following Dropbox folder downloaded to the directory in which you want to save the algorithm outputs: https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0
+4.  You will need a spectrum in the form of a .txt file with frequency values in one column and intensity values in another column.
    
 After running the Python script through the terminal, the code will prompt you to enter all the required information. 
 
