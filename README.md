@@ -12,7 +12,7 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 In order to run the algorithm, take the following steps:
 
 **1.** Download the following folder:
-[https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r\&st=vbapia3j\&dl=0](https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r&st=vbapia3j&dl=0)
+[https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r\&st=vbapia3j\&dl=0](https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r&st=vbapia3j&dl=0).
 This is the `molsim` Python directory ([GitHub link](https://github.com/bmcguir2/molsim)) used for spectroscopic simulations. The `conda.yml` file and some code have been updated for easier installation of this algorithm.
 
 **2.** Change directory into the downloaded folder and create the required conda environment with the following command:
@@ -27,7 +27,7 @@ Then activate the environment:
 conda activate amase_env
 ```
 
-Finally, install the package:
+Finally, install the required packages:
 
 ```bash
 pip install .
@@ -35,7 +35,7 @@ pip install .
 
 This will create a conda environment with all necessary packages to run the `assignment_algorithm.py` script. If anything doesn't work, please contact `zfried@mit.edu`. You must be in this conda environment to run the algorithm.
 
-**3.** Download the `assignment_algorithm.py` file and all of the files in this Dropbox folder to the directory where you want to save the algorithm outputs:
+**3.** Download the `assignment_algorithm.py` file from the GitHub repo and all of the files in this Dropbox folder to the directory where you want to save the algorithm outputs:
 [https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm\_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg\&dl=0](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0)
 
 **4.** You will need a spectrum in the form of a `.txt` file, with frequency values in one column and intensity values in another.
