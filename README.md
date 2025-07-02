@@ -13,7 +13,7 @@ In order to run the algorithm, take the following steps:
 
 **1.** Download the following folder:
 [https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r\&st=vbapia3j\&dl=0](https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r&st=vbapia3j&dl=0).
-This is the `molsim` Python directory ([GitHub link](https://github.com/bmcguir2/molsim)) used for spectroscopic simulations. The `conda.yml` file and some code have been updated for easier installation of this algorithm.
+This is mainly the `molsim` Python directory ([GitHub link](https://github.com/bmcguir2/molsim)) used for spectroscopic simulations, but the `conda.yml` file and some code have been updated for easier installation of this algorithm.
 
 **2.** Change directory into the downloaded folder and create the required conda environment with the following command:
 
