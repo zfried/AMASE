@@ -35,7 +35,7 @@ pip install .
 
 This will create a conda environment with all necessary packages to run the `assignment_algorithm.py` script. If anything doesn't work, please contact `zfried@mit.edu`. You must be in this conda environment to run the algorithm.
 
-**3.** Download the all of the .py files from the amase folder from the GitHub repo and all of the files in this Dropbox folder to the directory where you want to save the algorithm outputs:
+**3.** Download all `.py` files from the `amase` folder in this GitHub repository to the directory where you want to save the algorithm outputs:
 [https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm\_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg\&dl=0](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0)
 
 **4.** You will need a spectrum in the form of a `.txt` file, with frequency values in one column and intensity values in another.
