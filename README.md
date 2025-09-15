@@ -40,7 +40,7 @@ This will create a conda environment with all necessary packages to run the `ass
 
 **4.** You will need a spectrum in the form of a `.txt` file, with frequency values in one column and intensity values in another.
 
-You will need to change directory to this folder and then run the Python script in the terminal, the code will prompt you for the required inputs.
+You will need to change directory to this folder and then run the `main.py` file in the terminal, the code will prompt you for the required inputs.
 
 ---
 
