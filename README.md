@@ -35,7 +35,7 @@ pip install .
 
 This will create a conda environment with all necessary packages to run the `assignment_algorithm.py` script. If anything doesn't work, please contact `zfried@mit.edu`. You must be in this conda environment to run the algorithm.
 
-**3.** Download the `assignment_algorithm.py` file from the GitHub repo and all of the files in this Dropbox folder to the directory where you want to save the algorithm outputs:
+**3.** Download the all of the .py files from the amase folder from the GitHub repo and all of the files in this Dropbox folder to the directory where you want to save the algorithm outputs:
 [https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm\_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg\&dl=0](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0)
 
 **4.** You will need a spectrum in the form of a `.txt` file, with frequency values in one column and intensity values in another.
@@ -64,17 +64,16 @@ You will need to change directory to this folder and then run the Python script 
 **1.** `dataset_final.csv`
 Full dataset of all peak frequencies and intensities, along with molecular candidates from CDMS/JPL and local catalogs.
 
-**2.** `interactive_output.html`
-Interactive Plotly graphs and tables describing each assigned line and molecule. Useful for manual quality checks.
+**2.** `fit_spectrum.html`
+Interactive plot of all assigned molecules. Useful for manual quality checks.
 
 **3.** `output_report.txt`
 Detailed description of each line assignment and why each candidate was or wasn’t assigned.
 
-**4.** `final_assignment_table.csv`
+**4.** `final_peak_results.csv`
 Summary table of all line assignments.
 
-**5.** `u_line_candidates.csv`
-Top-scored molecules from the structural relevance metric after assigning each line. These are good starting points for rotational constant calculations or follow-up experiments.
+
 
 ---
 
