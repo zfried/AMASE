@@ -373,11 +373,11 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     jplFullDF = pd.read_csv(os.path.join(direc,'all_jpl_final_official.csv'))
     df_cdms = cdmsFullDF
     df_jpl = jplFullDF
-    cdms_mols = list(df_cdms['mol'])
+    cdms_mols = list(df_cdms['splat form'])
     cdms_tags = list(df_cdms['tag'])
 
     df_jpl = jplFullDF
-    jpl_mols = list(df_jpl['name'])
+    jpl_mols = list(df_jpl['splat form'])
     jpl_tags = list(df_jpl['tag'])
 
     cdmsDirec = os.path.join(direc,'cdms_pkl_final/')

@@ -288,7 +288,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
     #print('querying CDMS/JPL')
     print('')
 
-
+    '''
     molSmileDF = pd.read_csv(os.path.join(direc,'all_splat_smiles.csv'))
     dataframeMols = list(molSmileDF['mol'])
     dataframeSmiles = list(molSmileDF['smiles'])
@@ -300,6 +300,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
     jplTagsDF = pd.read_csv(os.path.join(direc,'jpl_catalogs.csv'))
     jplTagMols = list(jplTagsDF['mols'])
     jplTags = list(jplTagsDF['tags'])
+    '''
 
 
     savedForms = []
