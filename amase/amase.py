@@ -1,6 +1,5 @@
 from user_input import collect_all_parameters
 from dataset_creation import full_dataset_creation
-from amase_utils import softmax, closest
 from assign_lines import assign_all_lines
 from output_text_file import create_output
 from fit_model import full_model

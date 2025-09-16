@@ -693,6 +693,20 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
         write = csv.writer(file)
         write.writerows(finalMatrix)
 
+    form_save = []
+    smi_save = []
+    for g in finalMatrix[1:]:
+        for h in range(maxMols):
+            if g[2 + 9 * h + 2] != 'NA':
+                if g[2 + 9 * h + 1] not in form_save:
+                    form_save.append(g[2 + 9 * h + 1])
+                    smi_save.append(g[2 + 9 * h + 2])
+
+    #saving file required for assigning lines. This contains all molecules in the dataset and their SMILES strings.
+    dfSave = pd.DataFrame()
+    dfSave['molecules'] = form_save
+    dfSave['smiles'] = smi_save
+    dfSave.to_csv(os.path.join(direc, 'mol_smiles.csv'))
 
     tockScrape = time.perf_counter()
 

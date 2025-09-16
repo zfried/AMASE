@@ -417,7 +417,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     rms_scaled = 0.1*rms/np.max(y_exp)
     y_exp = 0.1*y_exp/np.max(y_exp)
     initial_columns = np.full(len(mol_list), 1e14) # Initial guesses
-    bounds = (np.full(len(mol_list), 1e07), np.full(len(mol_list), 1e25))
+    bounds = (np.full(len(mol_list), 1e07), np.full(len(mol_list), 1e20))
     print('Fitting iteration 1/2')
     lookup_tables, result = fit_spectrum_lookup(
         mol_list=mol_list,
@@ -431,7 +431,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
         ll0=ll0,
         ul0=ul0,
         data=data,
-        column_range=(1.e07, 1.e25),
+        column_range=(1.e07, 1.e20),
         n_grid_points=50,
         vlsr_value = 0.0
     )
@@ -474,7 +474,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     )
 
     bounds_filtered = (np.full(len(filtered_labels), 1e07),
-                    np.full(len(filtered_labels), 1e25))
+                    np.full(len(filtered_labels), 1e20))
 
     initial_columns_filtered = []
 
@@ -486,7 +486,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
     initial_columns_filtered = np.array(initial_columns_filtered)
     bounds_filtered = (np.full(len(filtered_labels), 1e07),
-                    np.full(len(filtered_labels), 1e25))
+                    np.full(len(filtered_labels), 1e20))
 
     print('Fitting iteration 2/2')
     result_filtered = least_squares(
