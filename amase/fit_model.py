@@ -119,7 +119,7 @@ def fit_spectrum_lookup(mol_list, labels, initial_columns, y_exp, bounds=None,
         args=(labels, lookup_tables, y_exp),
         method='trf',
         verbose=2,
-        ftol=1e-6,
+        ftol=1e-8,
         max_nfev=35
     )
 
