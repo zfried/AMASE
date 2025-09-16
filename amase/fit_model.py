@@ -170,7 +170,7 @@ def plot_simulation_vs_experiment_html_bokeh_compact_float32(
         height=700,
         title="Experimental vs Simulated Spectra",
         x_axis_label="Frequency (MHz)",
-        y_axis_label="Intensity",
+        y_axis_label="Scaled Intensity",
         tools="pan,wheel_zoom,box_zoom,reset,save"
     )
 
@@ -220,7 +220,7 @@ def plot_simulation_vs_experiment_html_bokeh_compact_float32(
     hover = HoverTool(tooltips=[
         ("Trace", "$name"),
         ("Frequency", "$x{0.000} MHz"),
-        ("Intensity", "$y{0.0000}")
+        ("Scaled Intensity", "$y{0.0000}")
     ])
     p.add_tools(hover)
 
@@ -249,7 +249,7 @@ def plot_simulation_vs_experiment_html_bokeh_compact_float32(
     # Save HTML
     output_file(filename)
     save(layout)
-    print(f"Bokeh plot saved to {filename}")
+    print(f"Plot saved to {filename}")
 
     # Peak analysis
     peak_results = []
@@ -412,8 +412,13 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
 
     y_exp = np.array(data.spectrum.Tb)
+
+    #need to scale intensity such that maximum is 0.1
+    rms_scaled = 0.1*rms/np.max(y_exp)
+    y_exp = 0.1*y_exp/np.max(y_exp)
     initial_columns = np.full(len(mol_list), 1e14) # Initial guesses
     bounds = (np.full(len(mol_list), 1e07), np.full(len(mol_list), 1e25))
+    print('Fitting iteration 1/2')
     lookup_tables, result = fit_spectrum_lookup(
         mol_list=mol_list,
         labels=labels,
@@ -454,20 +459,13 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
     for i in range(len(labels)):
         maxInt = max(cont_array[i])
-        if maxInt <= 2.5*rms:
-            #delMols.append(labels[i])
-            #print(labels[i])
-            #print('maxint',maxInt)
-            #print(leave_one_out_ssd[i])
+        if maxInt <= 2.5*rms_scaled:
             diff_ssd = leave_one_out_ssd[i]-ssd_og
-            #print('diffssd',diff_ssd)
             if (100*diff_ssd/ssd_og) < 0.1:
                 delMols.append(labels[i])
-            #print('')
+
     
 
-
-    #print(delMols)
     keep_mol_list = [mol_list[i] for i in range(len(mol_list)) if labels[i] not in delMols]
     keep_labels = [labels[i] for i in range(len(mol_list)) if labels[i] not in delMols]
 
@@ -490,6 +488,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     bounds_filtered = (np.full(len(filtered_labels), 1e07),
                     np.full(len(filtered_labels), 1e25))
 
+    print('Fitting iteration 2/2')
     result_filtered = least_squares(
         residuals_lookup,
         x0=initial_columns_filtered,

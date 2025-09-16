@@ -89,7 +89,6 @@ def checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full,
     of the molecular candidate are present in the spectrum. If at least half arent
     present, rule_out = True is returned
     '''
-    #maxInt, molRank, closestFreq, line_int_value, foundMol, freqs_sim, peak_ints_sim, closestIdx, closestFreq
 
     if foundMol:
         closestActualIdx, closestActualFreq = closest(peak_freqs_full, freq)
@@ -280,15 +279,12 @@ def scaleScores(rule_out_variable, high_intensities, high_smiles, prev_best_vari
 
 
 
-#smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value
 def spectroscopic_checks_single_molecule(smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value, sigmaDict, peak_freqs_full, peak_ints_full, rms, correctFreq, oldHighestIntensities, oldHighestSmiles, previousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt, localFreqInts, cdmsFreqInts, jplFreqInts):
     '''
     This function combines all of the functions for the intensity and frequency checks for each molecular candidate.
     '''
-    #maxInt, molRank, closestFreq, intValue, foundMol, freqs, peak_ints, closestIdx, closestFreq
-    #tag, linelist, molForm, line_int, molFreq, localFreqInts, cdmsFreqInts, jplFreqInts
+
     maxInt, molRank, closestFreq, line_int_value, foundMol, freqs_sim, peak_ints_sim, closestIdx, closestFreq = checkIntensity(tag, linelist, formula, intensity_input, freq, localFreqInts, cdmsFreqInts, jplFreqInts)
-    #linelist, formula, tag, freq, peak_freqs_full, peak_ints_full, rms, foundMol, sim_freqs, sim_ints, closestIdx, closestFreq
     rule_out_val = checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full, rms, foundMol,freqs_sim, peak_ints_sim, closestIdx, closestFreq)
 
     if correctFreq in sigmaDict:
@@ -297,13 +293,11 @@ def spectroscopic_checks_single_molecule(smile, formula, linelist, tag, iso, fre
         sigmaDict[correctFreq] = sigmaList
     else:
         sigmaDict[correctFreq] = [(formula, freq, rule_out_val)]
-    #rule_out_variable, high_intensities, high_smiles, prev_best_variable, intensity_variable, mol_form_variable, smile_input, graph_smiles, graph_values, max_int_val, mol_rank_val, iso_value_indiv, freq_cat, detectedSmiles, consider_structure, validAtoms, correctFreq, dv_val_freq, maxObservedInt, smile
     scaledPer, newReport, value = scaleScores(rule_out_val, oldHighestIntensities, oldHighestSmiles, previousBest, intensity_input, formula, smile, graph_smiles_main, graph_values_main, maxInt, molRank, iso_value, freq, detectedSmiles, consider_structure, validAtoms, correctFreq, dv_val_freq, maxObservedInt, smile)
     tu2 = [smile, scaledPer, formula, qn, value, iso_value]
 
     return tu2, newReport
 
-#smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value, rule_out_val
 def spectroscopic_checks_single_molecule_final(smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value, rule_out_val, newHighestIntensities, newHighestSmiles, newPreviousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt, correctFreq, localFreqInts, cdmsFreqInts, jplFreqInts):
     '''
     This function combines all of the functions for the intensity and frequency checks for each molecular candidate.
@@ -311,7 +305,6 @@ def spectroscopic_checks_single_molecule_final(smile, formula, linelist, tag, is
     '''
 
     #maxInt, molRank, closestFreq, line_int_value, foundMol, freqs_sim, peak_ints_sim, closestIdx, closestFreq = checkIntensity(tag, linelist, formula, intensity_input, freq)
-    #linelist, formula, tag, freq, peak_freqs_full, peak_ints_full, rms, foundMol, sim_freqs, sim_ints, closestIdx, closestFreq
     #rule_out_val = checkAllLines(linelist, formula, tag, freq, peak_freqs_full, peak_ints_full, rms, foundMol,freqs_sim, peak_ints_sim, closestIdx, closestFreq)
     maxInt, molRank, closestFreq, line_int_value, foundMol, freqs_sim, peak_ints_sim, closestIdx, closestFreq = checkIntensity(tag, linelist, formula, intensity_input, freq, localFreqInts, cdmsFreqInts, jplFreqInts)
 
@@ -360,7 +353,6 @@ def forwardRun(correctFreq, sorted_dict_previous, newCalc, detectedSmiles, testS
         freq = testFrequencies[idx]
         qn = qns[idx]
 
-        #smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value, sigmaDict, peak_freqs_full, peak_ints_full, rms, correctFreq, oldHighestIntensities, oldHighestSmiles, previousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt
         tu2, newReport = spectroscopic_checks_single_molecule(smile, formula, linelist, tag, iso, freq, qn, intensityValue, newSmiles, newValues, iso, sigmaDict, peak_freqs_full, peak_ints_full, rms, correctFreq, oldHighestIntensities, oldHighestSmiles, previousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt, localFreqInts, cdmsFreqInts, jplFreqInts)
         lineReport.append(newReport)
         testingScoresFreq_Updated.append(tu2)
@@ -665,8 +657,7 @@ def assign_all_lines(direc, startingMols, consider_structure, smiles, edges, cou
             if consider_structure == False:
                 newCalc = False
 
-            #correctFreq, sorted_dict_previous, newCalc, detectedSmiles, testSmiles, forms, linelists, tags, testIso, testFrequencies, qns, intensityValue, smiles, edges, countDict, sigmaDict, peak_freqs_full, peak_ints_full, rms, oldHighestIntensities, oldHighestSmiles, previousBest
-            #correctFreq, sorted_dict_previous, newCalc, detectedSmiles, testSmiles, forms, linelists, tags, testIso, testFrequencies, qns, intensityValue, smiles, edges, countDict, sigmaDict, peak_freqs_full, peak_ints_full, rms, oldHighestIntensities, oldHighestSmiles, previousBest, consider_structure, validAtoms, dv_val_freq, maxObservedInt
+
             testingScoresFinal, testingScoresSmiles, softScores, testingScores, sorted_dict, globalScores, sortedTuplesCombined, topSmile, topGlobalScore, topMol, topScore, bestReport_forward = forwardRun(correctFreq, sorted_dict_last,newCalc, detectedSmiles, testSmiles, forms, linelists, tags, testIso, testFrequencies, qns, intensityValue, smiles, edges, countDict, sigmaDict, peak_freqs_full, peak_ints_full, rms, oldHighestIntensities, oldHighestSmiles, previousBest, consider_structure, validAtoms, dv_val_freq, maxObservedInt, localFreqInts, cdmsFreqInts, jplFreqInts)
 
             sorted_dict_last = sorted_dict
@@ -719,7 +710,6 @@ def assign_all_lines(direc, startingMols, consider_structure, smiles, edges, cou
                         qn = qnsReverse[z]
 
                         # checking intensity and frequency match for all candidate molecules
-                        #maxInt, molRank, closestFreq, intValue, foundMol, freqs, peak_ints, closestIdx, closestFreq
                         maxInt, molRank, closestFreq, line_int_value, foundMol, freqs_sim, peak_ints_sim, closestIdx, closestFreq = checkIntensity(tag, linelist, form, intensityReverse, freq, localFreqInts, cdmsFreqInts, jplFreqInts)
 
 
@@ -727,7 +717,6 @@ def assign_all_lines(direc, startingMols, consider_structure, smiles, edges, cou
                             if sig[0] == form and sig[1] == freq:
                                 rule_out_reverse = sig[2]
 
-                                #rule_out_variable, high_intensities, high_smiles, prev_best_variable, intensity_variable, mol_form_variable, smile_input, graph_smiles, graph_values, max_int_val, mol_rank_val, iso_value_indiv, freq_cat, detectedSmiles, consider_structure, validAtoms, correctFreq, dv_val_freq, maxObservedInt, smile
 
                         scaledPer, subReport, value = scaleScores(rule_out_reverse, newHighestIntensities, newHighestSmiles,
                                                         newPreviousBest, intensityReverse, form, smile, sorted_smiles,
@@ -945,7 +934,6 @@ def assign_all_lines(direc, startingMols, consider_structure, smiles, edges, cou
                     rule_out_reverse = True
                     print('not present in rule out reverse')
 
-                #smile, formula, linelist, tag, iso, freq, qn, intensity_input, graph_smiles_main, graph_values_main, iso_value, rule_out_val, newHighestIntensities, newHighestSmiles, newPreviousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt, correctFreq
                 tu2, subReport = spectroscopic_checks_single_molecule_final(smile,form,linelist,tag,iso,freq,qn,intensityReverse,newSmiles,newValues, iso, rule_out_reverse, newHighestIntensities, newHighestSmiles, newPreviousBest, detectedSmiles, consider_structure, validAtoms, dv_val_freq, maxObservedInt, correctFreq, localFreqInts, cdmsFreqInts, jplFreqInts)
 
 
@@ -985,7 +973,18 @@ def assign_all_lines(direc, startingMols, consider_structure, smiles, edges, cou
     with open(saveTestFile, "wb") as fp:
         pickle.dump(newTestingScoresListFinal, fp)
 
-    assignTick = time.perf_counter()
-    print(('Line assignment completed in', round(assignTick - assignTick, 2), 'seconds'))
-    return startingMols, newTestingScoresListFinal, newCombinedScoresList, actualFrequencies, allIndexTest, allReports, intensities
+    assignTock = time.perf_counter()
+    print('Line assignment completed in', round(assignTock - assignTick, 2), 'seconds')
+
+    assignScores = {
+        'startingMols': startingMols,
+        'newTestingScoresListFinal': newTestingScoresListFinal,
+        'newCombinedScoresList': newCombinedScoresList,
+        'actualFrequencies': actualFrequencies,
+        'allIndexTest': allIndexTest,
+        'allReports': allReports,
+        'intensities': intensities
+    }
+    
+    return assignScores
         

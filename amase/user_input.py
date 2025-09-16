@@ -24,7 +24,7 @@ def get_spectrum_path() -> str:
 def get_directory_path() -> str:
     """Get and validate directory path for file storage."""
     while True:
-        path = input('Please enter path to directory where files will be stored:\n').strip()
+        path = input('Please enter path to directory where required files are stored. This is also where the outputs will be saved:\n').strip()
         # Clean up path
         path = ''.join(path.split())
         if path[-1] != '/':

@@ -495,7 +495,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
 
 
     tock2 = time.perf_counter()
-    print('time taken for scraping: ' + str(tock2-tick2))
+    #print('time taken for scraping: ' + str(tock2-tick2))
     print('done with splatalogue query')
 
     dfTags = pd.DataFrame()
@@ -728,4 +728,25 @@ def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLoca
     data, ll0, ul0, freq_arr, int_arr, resolution, peak_indices_original, peak_freqs, peak_ints, peak_indices_full, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, spectrum_freqs, spectrum_ints = load_analyze_dataset(specPath, sig)
     edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput = create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, MAX_MOLS, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso)
 
-    return edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, localMolsInput, peak_indices_original
+    dataset_results = {
+        "edges": edges,
+        "smiles": smiles,
+        "allVectors": allVectors,
+        "countDict": countDict,
+        "vectorSmiles": vectorSmiles,
+        "noCanFreq": noCanFreq,
+        "noCanInts": noCanInts,
+        "localFreqInts": localFreqInts,
+        "cdmsFreqInts": cdmsFreqInts,
+        "jplFreqInts": jplFreqInts,
+        "finalMatrix": finalMatrix,
+        "peak_freqs_full": peak_freqs_full,
+        "peak_ints_full": peak_ints_full,
+        "rms": rms,
+        "dv_val_freq": dv_val_freq,
+        "dv_val_vel": dv_val_vel,
+        "localMolsInput": localMolsInput,
+        "peak_indices_original": peak_indices_original
+    }
+
+    return dataset_results
