@@ -43,6 +43,7 @@ This will create a conda environment with all necessary packages to run the `ass
 You will need to change directory to this folder and then run the `amase.py` file in the terminal, the code will prompt you for the required inputs:
 
 ```bash
+cd /path/to/your/project
 python3 amase.py
 ```
 
