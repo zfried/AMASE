@@ -347,7 +347,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
 
     allScrapedMols = []
 
-    with gzip.open("transitions_database.pkl.gz", "rb") as f:
+    with gzip.open(os.path.join(direc,"transitions_database.pkl.gz"), "rb") as f:
         database_freqs, database_errs, database_tags, database_lists, database_smiles, database_names, database_isos, database_vibs, database_forms = pickle.load(f)
     print('scraping cdms/jpl/lsd molecules')
     tick1 = time.perf_counter()

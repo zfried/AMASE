@@ -7,18 +7,39 @@ import os
 import pandas as pd
 from rdkit import Chem
 from typing import List, Tuple, Optional, Dict, Any
-from config import DEFAULT_VALID_ATOMS, ALL_VALID_ATOMS, DEFAULT_SIGMA, DEFAULT_TEMPERATURE
+from config import DEFAULT_VALID_ATOMS, ALL_VALID_ATOMS
 
 
 def get_spectrum_path() -> str:
-    """Get and validate spectrum file path."""
+    """
+    Get and validate spectrum file path.
+    
+    The spectrum file must be a .txt file with:
+    - First column: frequency in MHz
+    - Second column: intensity
+    - Tab or space separated values
+    """
     while True:
-        path = input('Please enter path to spectrum:\n').strip()
-        if os.path.isfile(path):
-            return path
-        else:
+        print("Spectrum file requirements:")
+        print("- Must be a .txt file")
+        print("- First column: frequency (MHz)")
+        print("- Second column: intensity")
+        #print("- Tab or space separated")
+        print()
+        
+        path = input('Please enter full path to spectrum file:\n').strip()
+        
+        if not os.path.isfile(path):
             print('File not found. Please enter a valid file path.')
             print()
+            continue
+            
+        if not path.lower().endswith('.txt'):
+            print('File must be a .txt file.')
+            print()
+            continue
+            
+        return path
 
 
 def get_directory_path() -> str:
@@ -84,7 +105,7 @@ def get_sigma_threshold() -> int:
     """Get sigma threshold for line detection."""
     while True:
         try:
-            sigma = int(input('What sigma lines do you want to consider (6 is recommended)?\n'))
+            sigma = float(input('Sigma threshold (the code will only attempt to assign lines greater than sigma*rms noise):\n'))
             if sigma > 0:
                 return sigma
             else:
@@ -112,32 +133,46 @@ def get_temperature() -> float:
 
 def get_valid_atoms() -> List[str]:
     """Get list of valid atoms that could be present."""
-    prompt = '''Which atoms could feasibly be present in the mixture?
-If you type default, the valid atoms will be set to C, O, H, N, and S
-If you type all, all atoms in the periodic table will be considered. It is highly recommended that you specify (or choose default), however.
-If you would like to specify, please separate the atoms by commas (i.e. type C,O,S for carbon, oxygen and sulfur)
-'''
     
     while True:
-        user_input = input(prompt).strip()
-        valid_lower = user_input.lower().replace(' ', '')
+        print("Which atoms could feasibly be present in the mixture?")
+        print("1. Default (C, O, H, N, S)")
+        print("2. All atoms in periodic table")
+        print("3. Specify custom atoms")
+        print()
         
-        if valid_lower == 'default':
+        choice = input("Enter your choice (1, 2, or 3): ").strip()
+        
+        if choice == '1':
             return DEFAULT_VALID_ATOMS
-        elif valid_lower == 'all':
+        elif choice == '2':
             return ALL_VALID_ATOMS
-        else:
-            # Parse comma-separated atoms
-            try:
-                atoms = [atom.strip() for atom in user_input.split(',') if atom.strip()]
-                if atoms:
-                    return atoms
-                else:
-                    print('Please enter at least one atom or use "default" or "all".')
+        elif choice == '3':
+            while True:
+                atoms_input = input("Enter atoms separated by commas (e.g., C,O,S): ").strip()
+                
+                # Parse comma-separated atoms
+                atoms = [atom.strip() for atom in atoms_input.split(',') if atom.strip()]
+                
+                if not atoms:
+                    print("Please enter at least one atom.")
                     print()
-            except Exception:
-                print('Invalid input. Please try again.')
-                print()
+                    continue
+                
+                # Check if all atoms are in ALL_VALID_ATOMS
+                invalid_atoms = [atom for atom in atoms if atom not in ALL_VALID_ATOMS]
+                
+                if invalid_atoms:
+                    print(f"Invalid atoms: {', '.join(invalid_atoms)}")
+                    print(f"Please only use atoms from the valid list: {', '.join(ALL_VALID_ATOMS)}")
+                    print()
+                    continue
+                
+                return atoms
+        else:
+            print("Please enter 1, 2, or 3.")
+            print()
+
 
 
 def get_structure_consideration() -> bool:
@@ -285,10 +320,10 @@ def validate_smiles_string(smiles_string: str) -> Optional[str]:
 def collect_all_parameters() -> Dict[str, Any]:
     """Collect all user parameters in sequence."""
     print('')
-    print('-------------------------')
-    print('Welcome to AMASE! This program will help you identify molecules in a mixture based on rotational spectroscopic data and known molecular structures. If you have any issues, please email zfried@mit.edu')
-    print('-------------------------')
-    print('')
+    #print('-------------------------')
+    #print('Welcome to AMASE! This program will help you identify molecules in a mixture based on rotational spectroscopic data and known molecular structures. If you have any issues, please email zfried@mit.edu')
+    #print('-------------------------')
+    #print('')
     
     spectrum_path = get_spectrum_path()
     print('')

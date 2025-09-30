@@ -142,8 +142,8 @@ def get_individual_contributions_lookup(fitted_columns, labels, lookup_tables):
 
 def plot_simulation_vs_experiment_html_bokeh_compact_float32(
     y_exp, mol_list, best_columns, labels, filename, ll0, ul0, observation,
-    peak_freqs, peak_intensities, temp, dv_value, cont, vlsr_value, sourceSize=1.0E20,
-    peak_window=1.0, direc='./', max_initial_traces=20
+    peak_freqs, peak_intensities, temp, dv_value, cont, direc, scale_factor, vlsr_value, sourceSize=1.0E20,
+    peak_window=1.0, max_initial_traces=20
 ):
     """
     Compact Bokeh plot with checkbox legend replacing built-in legend.
@@ -247,6 +247,7 @@ def plot_simulation_vs_experiment_html_bokeh_compact_float32(
     layout = row(p, controls)
 
     # Save HTML
+    filename = os.path.join(direc, filename)
     output_file(filename)
     save(layout)
     print(f"Plot saved to {filename}")
@@ -257,6 +258,8 @@ def plot_simulation_vs_experiment_html_bokeh_compact_float32(
         idxs = np.where((freqs >= peak - peak_window) & (freqs <= peak + peak_window))[0]
         if len(idxs) == 0:
             continue
+
+        exp_intensity_max = scale_factor*exp_intensity_max
 
         sim_intensities = [np.max(sim[idxs]) for sim in individual_sims]
         total_sim_intensity = np.max(total_sim[idxs])
@@ -414,6 +417,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     y_exp = np.array(data.spectrum.Tb)
 
     #need to scale intensity such that maximum is 0.1
+    scale_factor = 0.1/np.max(y_exp)
     rms_scaled = 0.1*rms/np.max(y_exp)
     y_exp = 0.1*y_exp/np.max(y_exp)
     initial_columns = np.full(len(mol_list), 1e14) # Initial guesses
@@ -507,7 +511,6 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
     plot_simulation_vs_experiment_html_bokeh_compact_float32(
         y_exp, filtered_mols, fitted_columns_filtered, filtered_labels, "fit_spectrum.html", ll0, ul0, data,
-        actualFrequencies, intensities, temp, dv_val_vel, cont, vlsr_value=0.0
-    )
+        actualFrequencies, intensities, temp, dv_val_vel, cont, direc, scale_factor, vlsr_value=0.0)
 
 
