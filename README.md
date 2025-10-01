@@ -13,7 +13,7 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 
 - Python 3.11
 - Git
-- Conda (recommended) or pip
+- Conda or pip
 
 ## Installation
 
