@@ -64,7 +64,7 @@ Download all files from the [Dropbox directory](https://www.dropbox.com/scl/fo/y
 
 Your spectrum must be a `.txt` file with two columns:
 - Column 1: Frequency values (MHz)
-- Column 2: Intensity values (K or Jy/beam)
+- Column 2: Intensity values
 
 Example format:
 ```
