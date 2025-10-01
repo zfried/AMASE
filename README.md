@@ -28,10 +28,10 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
    ```
 
 2. **Install dependencies**
+   **Note:** You can optionally install in a conda environment (`conda create -n amase_env python=3.11 && conda activate amase_env`) or virtual environment (`python3 -m venv amase_env && source amase_env/bin/activate`) before running `pip install -r requirements.txt`.
    ```bash
    pip install -r requirements.txt
    ```
-**Note:** You can optionally install in a conda environment (`conda create -n amase_env python=3.11 && conda activate amase_env`) or virtual environment (`python3 -m venv amase_env && source amase_env/bin/activate`) before running `pip install -r requirements.txt`.
 
    **Note:** RDKit can be difficult to install via pip. If you encounter issues, install it separately with conda:
    ```bash
