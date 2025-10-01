@@ -13,25 +13,11 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 
 - Python 3.11
 - Git
-- Conda or pip
+- pip or conda
 
 ## Installation
 
-### Option 1: Using Conda
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/zfried/AMASE/
-   cd AMASE
-   ```
-
-2. **Create and activate the conda environment**
-   ```bash
-   conda env create -f environment.yml
-   conda activate amase_env
-   ```
-
-### Option 2: Using pip
+### Option 1: Using pip (Recommended)
 
 1. **Clone the repository**
    ```bash
@@ -44,6 +30,28 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
    pip install -r requirements.txt
    ```
 
+   **Note:** RDKit can be difficult to install via pip. If you encounter issues, install it separately with conda:
+   ```bash
+   conda install -c conda-forge rdkit
+   pip install -r requirements.txt
+   ```
+
+### Option 2: Using Conda
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/zfried/AMASE/
+   cd AMASE
+   ```
+
+2. **Create and activate the conda environment**
+   ```bash
+   conda env create -f environment.yml
+   conda activate amase_env
+   ```
+   
+   *Note: Conda environment creation may take a long time to solve dependencies.*
+
 ## Required Data Files
 
 Download all files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0) and place them in your desired output directory.
@@ -52,7 +60,7 @@ Download all files from the [Dropbox directory](https://www.dropbox.com/scl/fo/y
 
 Your spectrum must be a `.txt` file with two columns:
 - Column 1: Frequency values (MHz)
-- Column 2: Intensity values
+- Column 2: Intensity values (K or Jy/beam)
 
 Example format:
 ```
@@ -81,7 +89,8 @@ python3 amase.py --config example_config.yaml
 
 ## Troubleshooting
 
-- If you encounter import errors, ensure your conda environment is activated: `conda activate amase_env`
+- If using conda, ensure environment is activated: `conda activate amase_env`
+- For RDKit installation issues with pip, use conda: `conda install -c conda-forge rdkit`
 - Ensure all Dropbox files are downloaded before running the algorithm
 
 ---
@@ -109,12 +118,16 @@ Full dataset of all peak frequencies and intensities, along with molecular candi
 **2.** `fit_spectrum.html`
 Interactive plot of all assigned molecules. Useful for manual quality checks.
 
-**3.** `final_peak_results.csv`
-Summary table of all line assignments.
-
-**4.** `output_report.txt`
+**3.** `output_report.txt`
 Detailed description of each line assignment and why each candidate was or wasn't assigned.
 
+**4.** `final_peak_results.csv`
+Summary table of all line assignments.
+
+---
+
+If you run into any issues or have questions or suggestions, feel free to reach out:
+**zfried@mit.edu**
 
 
 ---
