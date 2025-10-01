@@ -7,51 +7,88 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 
 ---
 
-### **Installation and Usage Instructions**
+# Installation and Usage Instructions
 
-In order to run the algorithm, take the following steps:
+## Prerequisites
 
-**1.** Download the following folder:
-[https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r\&st=vbapia3j\&dl=0](https://www.dropbox.com/scl/fo/qkjom3xkh0ndtbb0shysy/AO6WrC9Hg9d32l1BKRbHjAs?rlkey=6xm1n9zl4928f5v58j45s501r&st=vbapia3j&dl=0).
-This is mainly the `molsim` Python directory ([GitHub link](https://github.com/bmcguir2/molsim)) used for spectroscopic simulations, but the `conda.yml` file and some code have been updated for easier installation of this algorithm.
+- Python 3.11
+- Git
+- Conda (recommended) or pip
 
-**2.** Change directory into the downloaded folder and create the required conda environment with the following command:
+## Installation
 
-```bash
-conda env create -n amase_env python=3.11 -f conda.yml
+### Option 1: Using Conda (Recommended)
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/zfried/AMASE/
+   cd AMASE
+   ```
+
+2. **Create and activate the conda environment**
+   ```bash
+   conda env create -f environment.yml
+   conda activate amase_env
+   ```
+
+### Option 2: Using pip
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/zfried/AMASE/
+   cd AMASE
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Required Data Files
+
+Download all files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0) and place them in your desired output directory.
+
+## Input Data Format
+
+Your spectrum must be a `.txt` file with two columns:
+- Column 1: Frequency values (MHz)
+- Column 2: Intensity values
+
+Example format:
+```
+10000.0  0.025
+10000.1  0.031
+10000.2  0.028
 ```
 
-Then activate the environment:
+## Running the Code
+
+### Interactive Mode
+
+Run the code and enter parameters when prompted:
 
 ```bash
-conda activate amase_env
-```
-
-Finally, install the required packages:
-
-```bash
-pip install .
-```
-
-This will create a conda environment with all necessary packages to run the `assignment_algorithm.py` script. If anything doesn't work, please contact `zfried@mit.edu`. You must be in this conda environment to run the algorithm.
-
-**3.** Download all `.py` files from the `amase` folder in this GitHub repository to the directory where you want to save the algorithm outputs:
-[https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm\_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg\&dl=0](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0)
-
-**4.** You will need a spectrum in the form of a `.txt` file, with frequency values in one column and intensity values in another.
-
-You will need to change directory to this folder and then run the `amase.py` file in the terminal, the code will prompt you for the required inputs:
-
-```bash
-cd /path/to/your/project
 python3 amase.py
 ```
 
+### Configuration File Mode
+
+Edit `example_config.yaml` with your parameters, then run:
+
+```bash
+python3 amase.py --config example_config.yaml
+```
+
+## Troubleshooting
+
+- If you encounter import errors, ensure your conda environment is activated: `conda activate amase_env`
+- Ensure all Dropbox files are downloaded before running the algorithm
+
 ---
 
-### **Additional File Requirements**
+## Additional File Requirements
 
-**1.** If you are providing local (offline) `.cat` files (i.e., not in CDMS or JPL), these need to be in a single folder. These catalogs should be generated at **T = 300 K** to interface properly with `molsim`. You’ll also need a `.csv` file containing isotopic and SMILES information for these molecules with **three columns**:
+**1.** If you are providing local (offline) `.cat` files (i.e., not in CDMS or JPL), these need to be in a single folder. These catalogs should be generated at **T = 300 K** to interface properly with `molsim`. You'll also need a `.csv` file containing isotopic and SMILES information for these molecules with **three columns**:
 
 * `name`: names of the `.cat` files (without `.cat`, e.g., `benzonitrile.cat` → `benzonitrile`)
 * `smiles`: SMILES strings for each molecule
@@ -64,7 +101,7 @@ python3 amase.py
 
 ---
 
-### **Notable Output Files**
+## Notable Output Files
 
 **1.** `dataset_final.csv`
 Full dataset of all peak frequencies and intensities, along with molecular candidates from CDMS/JPL and local catalogs.
@@ -72,15 +109,16 @@ Full dataset of all peak frequencies and intensities, along with molecular candi
 **2.** `fit_spectrum.html`
 Interactive plot of all assigned molecules. Useful for manual quality checks.
 
-**3.** `output_report.txt`
-Detailed description of each line assignment and why each candidate was or wasn’t assigned.
-
-**4.** `final_peak_results.csv`
+**3.** `final_peak_results.csv`
 Summary table of all line assignments.
+
+**4.** `output_report.txt`
+Detailed description of each line assignment and why each candidate was or wasn't assigned.
 
 
 
 ---
 
 If you run into any issues or have questions or suggestions, feel free to reach out:
-📧 **[zfried@mit.edu](mailto:zfried@mit.edu)**
+**zfried@mit.edu**
+
