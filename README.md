@@ -17,7 +17,7 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 
 ## Installation
 
-### Option 1: Using Conda (Recommended)
+### Option 1: Using Conda
 
 1. **Clone the repository**
    ```bash
