@@ -132,9 +132,3 @@ Summary table of all line assignments.
 If you run into any issues or have questions or suggestions, feel free to reach out:
 **zfried@mit.edu**
 
-
----
-
-If you run into any issues or have questions or suggestions, feel free to reach out:
-**zfried@mit.edu**
-
