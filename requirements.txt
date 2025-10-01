@@ -1,0 +1,11 @@
+numpy
+pandas
+scipy
+bokeh==2.4.3
+rdkit
+numba
+astropy
+fastdist
+gensim
+pyyaml
+git+https://github.com/samoturk/mol2vec
