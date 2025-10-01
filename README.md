@@ -12,7 +12,6 @@ It can currently be run on laboratory mixtures. An algorithm for astronomical da
 ## Prerequisites
 
 - Python 3.11
-- Git
 - pip or conda
 
 ## Installation
