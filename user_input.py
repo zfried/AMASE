@@ -347,7 +347,7 @@ def get_valid_atoms() -> List[str]:
 def get_structure_consideration() -> bool:
     """Ask if user wants to consider structural relevance."""
     while True:
-        response = input('Do you want to consider structural relevence? If not, only the spectroscopy will be considered (y/n): \n').strip().lower()
+        response = input('Do you want to consider structural relevence? If not, only the spectroscopy will be considered (y/n): \n Note: the structural relevance program is only designed for small astrochemically relevant molecules at the moment. If the mixture may contain larger or unique molecules, please input n.\n').strip().lower()
         if response in ['y', 'yes']:
             return True
         elif response in ['n', 'no']:
