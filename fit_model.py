@@ -396,28 +396,31 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     labels = []
     #collecting a list of molsim Molecule objects that were assigned
     for x in assignedMols:
-        if x[1] == 'CDMS':
-            idx = cdms_mols.index(x[0])
-            tag = cdms_tags[idx]
-            tagString = f"{tag:06d}"
-            molDirec = os.path.join(cdmsDirec, tagString+'.pkl' )
-            with open(molDirec, 'rb') as md:
-                mol = pickle.load(md)
-            mol_list.append(mol)
-            labels.append(x[0])
-        elif x[1] == 'JPL':
-            idx = jpl_mols.index(x[0])
-            tag = jpl_tags[idx]
-            tagString = str(tag)
-            molDirec = os.path.join(jplDirec,tagString+'.pkl')
-            with open(molDirec, 'rb') as md:
-                mol = pickle.load(md)
-            mol_list.append(mol)
-            labels.append(x[0])
-        elif x[1] == 'local':
-            mol = localMolsInput[x[0]]
-            mol_list.append(mol)
-            labels.append(x[0])
+        try:
+            if x[1] == 'CDMS':
+                idx = cdms_mols.index(x[0])
+                tag = cdms_tags[idx]
+                tagString = f"{tag:06d}"
+                molDirec = os.path.join(cdmsDirec, tagString+'.pkl' )
+                with open(molDirec, 'rb') as md:
+                    mol = pickle.load(md)
+                mol_list.append(mol)
+                labels.append(x[0])
+            elif x[1] == 'JPL':
+                idx = jpl_mols.index(x[0])
+                tag = jpl_tags[idx]
+                tagString = str(tag)
+                molDirec = os.path.join(jplDirec,tagString+'.pkl')
+                with open(molDirec, 'rb') as md:
+                    mol = pickle.load(md)
+                mol_list.append(mol)
+                labels.append(x[0])
+            elif x[1] == 'local':
+                mol = localMolsInput[x[0]]
+                mol_list.append(mol)
+                labels.append(x[0])
+        except:
+            print('error in ',x)
 
 
     y_exp = np.array(data.spectrum.Tb)
