@@ -114,19 +114,22 @@ amase.run_assignment(
 
 ### Required Parameters
 
-- **`spectrum_path`** (str): Path to the spectrum .txt file with two columns (frequency in MHz, intensity)
+- **`spectrum_path`** (str): Path to the spectrum .txt file with two columns and no header (frequency in MHz, intensity)
 - **`directory_path`** (str): Directory path for output files and required data files
-- **`sigma_threshold`** (float): Sigma threshold for peak detection
+- **`sigma_threshold`** (float): Sigma threshold for peak detection (5 and above recommended)
 - **`temperature`** (float): Temperature in Kelvin
 
 ### Optional Parameters
 
 - **`local_catalogs_enabled`** (bool): Whether to use local catalogs. Default: `False`
 - **`local_directory`** (str): Directory containing local .cat files. Default: `None`
-- **`local_df`** (pd.DataFrame): DataFrame with local catalog metadata (columns: name, smiles, iso). Default: `None`
-- **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None`
+- **`local_df`** (str): Path to .csv file with local catalog metadata (columns: name, smiles, iso). Default: `None`
+- **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None` which corresponds to the default atoms H,C,N,O,S
 - **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Default: `False`
+- **`starting_molecules`** (list): List of starting molecules as SMILES strings to initialize graph calculation. Default: `None`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings. Default: `None`
+
+For local catalogs, must place all .cat files in a single directory. The .cat file name should match the listed name in the local_df. For example if molecule_1.cat is in the local_directory, the local_df .csv file must have an entry in the `name` column that is molecule_1. These catalogs should also be generated at 300 K to properly interface with `molsim`.
 
 ## Input Data Format
 
@@ -154,9 +157,8 @@ If providing local (offline) `.cat` files not in CDMS or JPL:
 
 ## Starting Molecules (Optional)
 
-Precursor molecules can be provided as:
-- A list of SMILES strings in the `starting_molecules` parameter, **or**
-- A `.csv` file with a column titled `smiles` containing the SMILES strings
+Precursor molecules can be provided as (these will be used to initialize the graph calculation but are not required):
+- A list of SMILES strings in the `starting_molecules` parameter
 
 ## Output Files
 
@@ -167,22 +169,6 @@ AMASE generates several output files in the specified `directory_path`:
 3. **`output_report.txt`** - Detailed description of each line assignment
 4. **`final_peak_results.csv`** - Summary table of all line assignments
 
-## Example
-
-```python
-import amase
-
-# Run AMASE with required parameters only
-amase.run_assignment(
-    spectrum_path="/Users/data/my_spectrum.txt",
-    directory_path="/Users/data/amase_output",
-    sigma_threshold=5.0,
-    temperature=300.0
-)
-
-# Results will be saved in the spectrum_path directory
-# Check fit_spectrum.html for an interactive visualization
-```
 
 ## Support
 
@@ -193,7 +179,7 @@ Or open an issue at: https://github.com/zfried/AMASE/issues
 
 ## License
 
-MIT License - see LICENSE file for details
+TBD
 
 ## Citation
 
