@@ -1,5 +1,0 @@
-include amase/README.md
-include amase/LICENSE
-include amase/requirements.txt
-include amase/example_config.yaml
-include amase/environment.yml
