@@ -1,6 +1,6 @@
 # AMASE - Mixture Analysis Algorithm
 
-**AMASE** (Automated Mixture Analysis for Spectroscopic Experiments) is a Python package for automatically assigning mixtures studied by rotational spectroscopy. It leverages graph analysis and machine-learning molecular embedding methods to consider how structurally/chemically similar molecular candidates are to previously observed mixture components or known chemical priors.
+**AMASE** (Automated Mixture Analysis via Structural Evaluation) is a Python package for automatically assigning mixtures studied by rotational spectroscopy. It leverages graph analysis and machine-learning molecular embedding methods to consider how structurally/chemically similar molecular candidates are to previously observed mixture components or known chemical priors.
 
 A paper describing the technique can be found here: https://pubs.acs.org/doi/10.1021/acs.jpca.4c03580
 
@@ -127,7 +127,7 @@ amase.run_assignment(
 - **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None` which corresponds to the default atoms H,C,N,O,S
 - **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Default: `False`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings to initialize graph calculation. Default: `None`
-- **`starting_molecules`** (list): List of starting molecules as SMILES strings. Default: `None`
+- **`manual_add_smiles`** (bool): Enable interactive prompts to manually input SMILES strings for molecules lacking stored SMILES. Default: `False`
 
 For local catalogs, must place all .cat files in a single directory. The .cat file name should match the listed name in the local_df. For example if molecule_1.cat is in the local_directory, the local_df .csv file must have an entry in the `name` column that is molecule_1. These catalogs should also be generated at 300 K to properly interface with `molsim`.
 
