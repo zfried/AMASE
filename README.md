@@ -66,6 +66,10 @@ pip install -e .
 - Python 3.11 (recommended)
 - Dependencies are automatically installed with pip
 
+## Required Data Files
+
+Before running AMASE, download all required data files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0) and place them in your `directory_path`. 
+
 ## Usage
 
 **For a comprehensive guide with all parameters and multiple examples, see [example_run_assignment.ipynb](example_notebook.ipynb)**
@@ -123,10 +127,6 @@ amase.run_assignment(
 - **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None`
 - **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Default: `False`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings. Default: `None`
-
-## Required Data Files
-
-Before running AMASE, download all required data files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0) and place them in your `directory_path`.
 
 ## Input Data Format
 
