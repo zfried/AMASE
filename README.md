@@ -131,6 +131,8 @@ amase.run_assignment(
 
 For local catalogs, must place all .cat files in a single directory. The .cat file name should match the listed name in the local_df. For example if molecule_1.cat is in the local_directory, the local_df .csv file must have an entry in the `name` column that is molecule_1. These catalogs should also be generated at 300 K to properly interface with `molsim`.
 
+
+
 ## Input Data Format
 
 Your spectrum file must be a `.txt` file with two columns and no header:
@@ -154,6 +156,9 @@ If providing local (offline) `.cat` files not in CDMS or JPL:
    - `name`: names of the `.cat` files (without `.cat` extension)
    - `smiles`: SMILES strings for each molecule
    - `iso`: number of isotopically substituted atoms (e.g., HDCO → `1`, D₂CO → `2`)
+
+
+**For examples of the required file structure, see [example_local_catalogs](example_local_catalogs)**
 
 ## Starting Molecules (Optional)
 
