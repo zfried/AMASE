@@ -123,7 +123,7 @@ amase.run_assignment(
 
 - **`local_catalogs_enabled`** (bool): Whether to use local catalogs. Default: `False`
 - **`local_directory`** (str): Directory containing local .cat files. Default: `None`
-- **`local_df`** (str): Path to .csv file with local catalog metadata (columns: name, smiles, iso). Default: `None`
+- **`local_df`** (str): Path to .csv file with local catalog metadata (columns: name, smiles, iso), see below for more detailed instructions. Default: `None`
 - **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None` which corresponds to the default atoms H,C,N,O,S
 - **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Default: `False`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings to initialize graph calculation. Default: `None`
