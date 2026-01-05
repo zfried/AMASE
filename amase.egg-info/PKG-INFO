@@ -1,3 +1,35 @@
+Metadata-Version: 2.4
+Name: amase
+Version: 0.1.0
+Summary: AMASE Mixture Analysis Algorithm for rotational spectroscopy
+Home-page: https://github.com/zfried/AMASE
+Author: Zachary Fried
+Author-email: Zachary Fried <zfried@mit.edu>
+License: Patent pending
+        
+Project-URL: Homepage, https://github.com/zfried/AMASE
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
+Requires-Dist: bokeh>=3.0
+Requires-Dist: rdkit
+Requires-Dist: numba
+Requires-Dist: astropy
+Requires-Dist: fastdist
+Requires-Dist: gensim
+Requires-Dist: pyyaml
+Requires-Dist: mol2vec@ git+https://github.com/samoturk/mol2vec
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
 # AMASE - Mixture Analysis Algorithm
 
 **AMASE** (Automated Mixture Analysis for Spectroscopic Experiments) is a Python package for automatically assigning mixtures studied by rotational spectroscopy. It leverages graph analysis and machine-learning molecular embedding methods to consider how structurally/chemically similar molecular candidates are to previously observed mixture components or known chemical priors.
@@ -68,8 +100,6 @@ pip install -e .
 
 ## Usage
 
-**For a comprehensive guide with all parameters and multiple examples, see [example_run_assignment.ipynb](example_notebook.ipynb)**
-
 ### Basic Usage
 
 ```python
@@ -100,9 +130,7 @@ amase.run_assignment(
     local_df=pd.read_csv("/path/to/local_metadata.csv"),
     valid_atoms=['C', 'H', 'N', 'O'],
     consider_structure=True,
-    starting_molecules=['CCO', 'CC(=O)O'],  # SMILES strings
-    manual_add_smiles=False,
-    force_ignore_molecules=[]
+    starting_molecules=['CCO', 'CC(=O)O']  # SMILES strings
 )
 ```
 
@@ -130,7 +158,7 @@ Before running AMASE, download all required data files from the [Dropbox directo
 
 ## Input Data Format
 
-Your spectrum file must be a `.txt` file with two columns and no header:
+Your spectrum file must be a `.txt` file with two columns:
 - Column 1: Frequency values (MHz)
 - Column 2: Intensity values
 
@@ -180,7 +208,7 @@ amase.run_assignment(
     temperature=300.0
 )
 
-# Results will be saved in the spectrum_path directory
+# Results will be saved in /Users/data/amase_output/
 # Check fit_spectrum.html for an interactive visualization
 ```
 

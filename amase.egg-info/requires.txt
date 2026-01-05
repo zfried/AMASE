@@ -1,11 +1,11 @@
 numpy
 pandas
 scipy
-bokeh==2.4.3
+bokeh>=3.0
 rdkit
 numba
 astropy
 fastdist
 gensim
 pyyaml
-git+https://github.com/samoturk/mol2vec
+mol2vec@ git+https://github.com/samoturk/mol2vec
