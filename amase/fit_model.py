@@ -479,7 +479,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
             if diff_ssd/ssd_og < 0.1:
                 delMols.append(labels[i])
 
-    print(delMols)
+    #print(delMols)
     freqs = data.spectrum.frequency
     #finding the carrier of each line
     all_carriers = {}
@@ -528,7 +528,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                     all_carriers[labels[i]] = all_carriers[labels[i]] + 1
 
 
-    print(all_carriers)
+    #print(all_carriers)
 
     for de in all_carriers:
         if all_carriers[de] == 0:
