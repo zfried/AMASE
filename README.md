@@ -158,7 +158,7 @@ If providing local (offline) `.cat` files not in CDMS or JPL:
    - `iso`: number of isotopically substituted atoms (e.g., HDCO → `1`, D₂CO → `2`)
 
 
-**For examples of the required file structure, see [example_local_catalogs](example_local_catalogs). Here, the path to the local_catalogs folder would be inputted as the `local_directory` input parameter and the path to the local_metadata.csv file would be inputted as the `local_df` input parameter **
+**For examples of the required file structure, see [example_local_catalogs](example_local_catalogs). Here, the path to the local_catalogs folder would be inputted as the `local_directory` input parameter and the path to the local_metadata.csv file would be inputted as the `local_df` input parameter. In order to consider these catalogs `local_catalogs_enabled` must be set to True **
 
 ## Starting Molecules (Optional)
 
