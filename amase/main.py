@@ -18,7 +18,8 @@ def run_assignment(
     consider_structure=False,
     starting_molecules=None,
     manual_add_smiles = False,
-    force_ignore_molecules = []
+    force_ignore_molecules = [],
+    stricter = True
 ):
     """
     Run the AMASE assignment algorithm.
@@ -39,6 +40,7 @@ def run_assignment(
             lacking stored SMILES strings in the downloaded files. If False, the molecules without stored SMILES strings will be ignored. Default: None
         force_ignore_molecules (list, optional): Molecule names (from the downloaded CDMS and JPL .csv files or local directory of catalogs)
             that the algorithm will be forced to ignore. Useful if there is a false-positive assignment. Default: []
+        stricter (bool, optional): If True, has stricter molecular filtering during the assignment. 
 
     Returns:
         None: Results are saved to files in the specified directory
@@ -58,7 +60,8 @@ def run_assignment(
         'consider_structure': consider_structure,
         'starting_molecules': starting_molecules if starting_molecules is not None else [],
         'manual_add_smiles' : manual_add_smiles,
-        'force_ignore_molecules': force_ignore_molecules
+        'force_ignore_molecules': force_ignore_molecules,
+        'stricter': stricter
     }
 
     # Run the analysis pipeline
@@ -111,7 +114,8 @@ def run_assignment(
         params['temperature'],
         dataset_results['dv_val_vel'],
         dataset_results['rms'],
-        dataset_results['dv_val_freq']
+        dataset_results['dv_val_freq'],
+        params['stricter']
     )
     
     # Create a second output file with warnings for removed molecules

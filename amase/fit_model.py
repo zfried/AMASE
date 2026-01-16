@@ -327,7 +327,7 @@ def filter_lookup_tables(lookup_tables, mol_list, labels, keep_labels):
 
 
 
-def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq):
+def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq, stricter):
     '''
     Main function to model the full spectrum based on assigned molecules.
     
@@ -493,46 +493,49 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
         num_assignments[l] = 0 
 
     
-    '''
-    Removing molecules that are only assigned to one blended line and only account for <= 40% of that line intensity
-    This removes less confident assignments.
-    '''
-    peak_window = 0.5 * dv_value_freq
-    for peak, exp_intensity_max in zip(actualFrequencies, intensities):
-        exp_intensity_max = scale_factor*exp_intensity_max
-        
-        idxs = np.where((freqs >= peak - peak_window) & (freqs <= peak + peak_window))[0]
-        if len(idxs) == 0:
-            continue
 
-        threshold = 0.2 * exp_intensity_max
+    if stricter == True:
+        '''
+        Removing molecules that are only assigned to one blended line and only account for <= 40% of that line intensity
+        This removes less confident assignments.
+        '''
+        peak_window = 0.5 * dv_value_freq
+        for peak, exp_intensity_max in zip(actualFrequencies, intensities):
+            exp_intensity_max = scale_factor*exp_intensity_max
+            
+            idxs = np.where((freqs >= peak - peak_window) & (freqs <= peak + peak_window))[0]
+            if len(idxs) == 0:
+                continue
 
-        sim_intensities = [np.max(individual_contributions[lbl][idxs]) for lbl in labels]
-        carriers = [
-            labels[i]
-            for i, inten in enumerate(sim_intensities)
-            if inten >= threshold and inten > 0
-        ]
+            threshold = 0.2 * exp_intensity_max
 
-
-        for c in carriers:
-            num_assignments[c] += 1
-
-        if len(carriers) == 1:
-            non_blended_lines[carriers[0]] += 1
-        
-
-        for i, inten in enumerate(sim_intensities):
-            if inten >= threshold and inten > 0:
-                if inten/exp_intensity_max > 0.4 or len(carriers) == 1:
-                    all_carriers[labels[i]] = all_carriers[labels[i]] + 1
+            sim_intensities = [np.max(individual_contributions[lbl][idxs]) for lbl in labels]
+            carriers = [
+                labels[i]
+                for i, inten in enumerate(sim_intensities)
+                if inten >= threshold and inten > 0
+            ]
 
 
-    #print(all_carriers)
+            for c in carriers:
+                num_assignments[c] += 1
 
-    for de in all_carriers:
-        if all_carriers[de] == 0:
-            delMols.append(de)
+            if len(carriers) == 1:
+                non_blended_lines[carriers[0]] += 1
+            
+
+            for i, inten in enumerate(sim_intensities):
+                if inten >= threshold and inten > 0:
+                    if inten/exp_intensity_max > 0.4 or len(carriers) == 1:
+                        all_carriers[labels[i]] = all_carriers[labels[i]] + 1
+
+
+        #print(all_carriers)
+
+        for de in all_carriers:
+            if all_carriers[de] == 0:
+                #print(de)
+                delMols.append(de)
 
     '''
 
