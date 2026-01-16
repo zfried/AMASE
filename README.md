@@ -126,7 +126,7 @@ amase.run_assignment(
 - **`local_directory`** (str): Directory containing local .cat files. Default: `None`
 - **`local_df`** (str): Path to .csv file with local catalog metadata (columns: name, smiles, iso), see below for more detailed instructions. Default: `None`
 - **`valid_atoms`** (list): List of valid atoms for molecules. Default: `None` which corresponds to the default atoms H,C,N,O,S
-- **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Useful if you suspect mixture components should be chemically related (i.e. discharge experiments) Default: `False`
+- **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Useful if you suspect mixture components should be chemically related (i.e. discharge experiments). Default: `False`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings to initialize graph calculation. Default: `None`
 - **`manual_add_smiles`** (bool): Enable interactive prompts to manually input SMILES strings for molecules lacking stored SMILES. Default: `False`
 - **`force_ignore_molecules`** (list): Molecule names to force the algorithm to ignore. Default: `[]`
