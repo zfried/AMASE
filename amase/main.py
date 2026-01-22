@@ -19,6 +19,7 @@ def run_assignment(
     starting_molecules=None,
     manual_add_smiles = False,
     force_ignore_molecules = [],
+    force_include_molecules = [],
     stricter = True,
     spectrum_response_flat = False
 ):
@@ -41,6 +42,8 @@ def run_assignment(
             lacking stored SMILES strings in the downloaded files. If False, the molecules without stored SMILES strings will be ignored. Default: None
         force_ignore_molecules (list, optional): Molecule names (from the downloaded CDMS and JPL .csv files or local directory of catalogs)
             that the algorithm will be forced to ignore. Useful if there is a false-positive assignment. Default: []
+        force_include_molecules (list, optional): Molecule names (from the downloaded CDMS and JPL .csv files or local directory of catalogs)
+            that the algorithm will be forced to include in the fit. Useful to test a molecule's presence. Default: []
         stricter (bool, optional): If True, has stricter molecular filtering during the assignment. 
 
     Returns:
@@ -62,6 +65,7 @@ def run_assignment(
         'starting_molecules': starting_molecules if starting_molecules is not None else [],
         'manual_add_smiles' : manual_add_smiles,
         'force_ignore_molecules': force_ignore_molecules,
+        'force_include_molecules': force_include_molecules,
         'stricter': stricter,
         'spectrum_response_flat': spectrum_response_flat
     }
@@ -118,7 +122,9 @@ def run_assignment(
         dataset_results['rms'],
         dataset_results['dv_val_freq'],
         params['stricter'],
-        params['spectrum_response_flat']
+        params['spectrum_response_flat'],
+        params['local_catalogs_enabled'],
+        params['force_include_molecules']
     )
     
     # Create a second output file with warnings for removed molecules

@@ -9,6 +9,7 @@ from .molsim_utils import find_limits, load_obs, find_peaks
 import numpy as np
 import pickle
 import os
+import warnings
 import pandas as pd
 from bokeh.plotting import figure, output_file, save
 from bokeh.models import HoverTool, Button, CustomJS, CheckboxGroup, Div
@@ -327,7 +328,7 @@ def filter_lookup_tables(lookup_tables, mol_list, labels, keep_labels):
 
 
 
-def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq, stricter, spectrum_response_flat):
+def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq, stricter, spectrum_response_flat, localYN, force_include_mols):
     '''
     Main function to model the full spectrum based on assigned molecules.
     
@@ -352,6 +353,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
     with open(os.path.join(direc, 'combined_list.pkl'), "rb") as fp:  # Unpickling
         newCombinedScoresList = pickle.load(fp)
+
 
 
     assignedMols = []
@@ -391,6 +393,21 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
 
     cdmsDirec = os.path.join(direc,'cdms_pkl_final/')
     jplDirec = os.path.join(direc,'jpl_pkl_final/')
+    #print(localMolsInput)
+
+    for i in force_include_mols:
+        if localYN == True:
+            if i in localMolsInput:
+                assignedMols.append((i,'local'))
+                continue
+        if i in cdms_mols:
+            if (i, 'CDMS') not in assignedMols:
+                assignedMols.append((i, 'CDMS'))
+        elif i in jpl_mols:
+            if (i,'JPL') not in assignedMols:
+                assignedMols.append((i,'JPL'))
+        else:
+            warnings.warn(f"{i} was forced to be included in the fit but is not found in the CDMS or JPL databases. Please check the inputted molecule name.", UserWarning)
 
     mol_list = []
     labels = []
@@ -619,10 +636,12 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     print('')
 
                     
-
-
+    #print(force_include_mols)
+    #print(delMols)
+    delMols = [i for i in delMols if i not in force_include_mols]
     keep_mol_list = [mol_list[i] for i in range(len(mol_list)) if labels[i] not in delMols]
     keep_labels = [labels[i] for i in range(len(mol_list)) if labels[i] not in delMols]
+    #print(keep_labels)
 
     if len(keep_labels) == 0:
         raise ValueError("No molecules assigned. Fitting will fail.")

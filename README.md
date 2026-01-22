@@ -129,7 +129,8 @@ amase.run_assignment(
 - **`consider_structure`** (bool): Whether to consider molecular structure in analysis. Useful if you suspect mixture components should be chemically related (i.e. discharge experiments). Default: `False`
 - **`starting_molecules`** (list): List of starting molecules as SMILES strings to initialize graph calculation. Default: `None`
 - **`manual_add_smiles`** (bool): Enable interactive prompts to manually input SMILES strings for molecules lacking stored SMILES. Default: `False`
-- **`force_ignore_molecules`** (list): Molecule names to force the algorithm to ignore. Default: `[]`
+- **`force_ignore_molecules`** (list): List of molecule names to force the algorithm to ignore. Useful if there is a false positive assignment. Name must match the downloaded CDMS and JPL .csv files or local directory of catalogs. Default: `[]`
+- **`force_include_molecules`** (list): List of molecule names to force the algorithm to include in the fit. Useful to test the presence of a molecule. Name must match the downloaded CDMS and JPL .csv files or local directory of catalogs. Default: `[]`
 - **`stricter`** (bool): If `True` has extra strict molecule filtering during the fitting stage in order to minimize false positive assignments. If too few molecules are being assigned, should set to `False`. Default `True`
 
 For local catalogs, must place all .cat files in a single directory. The .cat file name should match the listed name in the local_df. For example if molecule_1.cat is in the local_directory, the local_df .csv file must have an entry in the `name` column that is molecule_1. These catalogs should also be generated at 300 K to properly interface with `molsim`.
