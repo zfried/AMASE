@@ -19,7 +19,8 @@ def run_assignment(
     starting_molecules=None,
     manual_add_smiles = False,
     force_ignore_molecules = [],
-    stricter = True
+    stricter = True,
+    spectrum_response_flat = False
 ):
     """
     Run the AMASE assignment algorithm.
@@ -61,7 +62,8 @@ def run_assignment(
         'starting_molecules': starting_molecules if starting_molecules is not None else [],
         'manual_add_smiles' : manual_add_smiles,
         'force_ignore_molecules': force_ignore_molecules,
-        'stricter': stricter
+        'stricter': stricter,
+        'spectrum_response_flat': spectrum_response_flat
     }
 
     # Run the analysis pipeline
@@ -115,7 +117,8 @@ def run_assignment(
         dataset_results['dv_val_vel'],
         dataset_results['rms'],
         dataset_results['dv_val_freq'],
-        params['stricter']
+        params['stricter'],
+        params['spectrum_response_flat']
     )
     
     # Create a second output file with warnings for removed molecules

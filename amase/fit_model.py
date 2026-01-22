@@ -327,7 +327,7 @@ def filter_lookup_tables(lookup_tables, mol_list, labels, keep_labels):
 
 
 
-def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq, stricter):
+def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFrequencies, intensities, temp, dv_val_vel, rms, dv_value_freq, stricter, spectrum_response_flat):
     '''
     Main function to model the full spectrum based on assigned molecules.
     
@@ -537,9 +537,9 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                 #print(de)
                 delMols.append(de)
 
-    '''
+    
 
-
+    missingLinesDelete = []
     for i in labels:
         if i not in delMols:
             indiv_intensity = individual_contributions[i]
@@ -561,8 +561,11 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                     
                     # Get the frequency and intensity values in this window
                     freqs_in_window = freqs[freq_window]
-                    sim_intensity_in_window = abs(indiv_intensity[freq_window])
-                    obs_intensity_in_window = abs(y_exp[freq_window])
+                    #sim_intensity_in_window = abs(indiv_intensity[freq_window])
+                    #obs_intensity_in_window = abs(y_exp[freq_window])
+                    sim_intensity_in_window = indiv_intensity[freq_window]
+
+                    obs_intensity_in_window = y_exp[freq_window]
                     
                     # Calculate the integral (using trapezoidal rule)
                     integral_sim = np.trapz(sim_intensity_in_window, freqs_in_window)
@@ -571,42 +574,50 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                     #print(integral_sim)
                     #print(integral_obs)
                     #print(integral_sim-integral_obs)
-                    if (integral_obs/integral_sim) <= 0.30:
+                    if (integral_obs/integral_sim) <= 0.25:
                         missingCount += 1
                 
-                
+                '''
                 print(i)
                 print('missing count')
                 print(missingCount)
+                print(len(peak_freqs_filtered))
                 print(missingCount/len(peak_freqs_filtered))
                 print(max(individual_contributions[i]) < 10*rms_scaled)
                 print(max(individual_contributions[i])/rms_scaled)
                 print('\n\n\n')
+                '''
                 
 
                 missingDeletion = False
                 #tiered checks of percent of missing lines based on maximum intensity
-                if max(individual_contributions[i]) <= 3.1*rms_scaled:
-                    if missingCount/len(peak_freqs_filtered) >= 0.1:
-                        missingDeletion = True
-                if max(individual_contributions[i]) < 10*rms_scaled:
+                if max(individual_contributions[i]) <= 4*rms_scaled:
                     if missingCount/len(peak_freqs_filtered) >= 0.2:
                         missingDeletion = True
-                if max(individual_contributions[i]) < 15*rms_scaled:
+                if max(individual_contributions[i]) < 10*rms_scaled:
+                    if missingCount/len(peak_freqs_filtered) >= 0.3:
+                        missingDeletion = True
+                if max(individual_contributions[i]) < 40*rms_scaled:
                     if missingCount/len(peak_freqs_filtered) >= 0.5:
                         missingDeletion = True
+
+                if missingDeletion == True:
+                    print('DELETING ', i)
 
 
 
                 #deleting if too many missing lines 
                 if missingDeletion == True:
                     delMols.append(i)
+                    missingLinesDelete.append(i)
                     #print('deleting')
                     #print(i)
                     #print(missingCount/len(peak_freqs_filtered))
+    print('')
+    print('molecules deleted from missing lines check:')
+    print(missingLinesDelete)
+    print('')
 
-
-    '''
                     
 
 
