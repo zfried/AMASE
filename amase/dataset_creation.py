@@ -207,7 +207,14 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
                 splitName = q.split('.cat')
                 splitName2 = splitName[0].split('/')
                 molName = splitName2[-1]
-                if molName not in force_ignore_molecules:
+                idx = dfNames.index(molName)
+                smileValue = dfSmiles[idx]
+                consider_molecule = True
+                if Chem.MolFromSmiles(smileValue) is None:
+                    consider_molecule = False
+                    print('ignoring ', molName, ' because SMILES string (' + smileValue + ') is invalid' )
+
+                if molName not in force_ignore_molecules and consider_molecule == True:
                     mol = load_mol(q, type='SPCAT')
                     localMolsInput[molName] = mol
                     minFreq = ll0
@@ -353,6 +360,21 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
 
     with gzip.open(os.path.join(direc,"transitions_database.pkl.gz"), "rb") as f:
         database_freqs, database_errs, database_tags, database_lists, database_smiles, database_names, database_isos, database_vibs, database_forms = pickle.load(f)
+    
+    ignore_smiles = []
+    unique_smiles = np.unique(database_smiles)
+
+    for s in unique_smiles:
+        if 'NEEDS' not in s:
+            mol = Chem.MolFromSmiles(s)
+            if mol is None:
+                ignore_smiles.append(s)
+                print('ignoring ', s, 'due to an invalid SMILES string' )
+
+
+    ignore_smiles = set(ignore_smiles)
+
+    
     print('scraping cdms/jpl/lsd molecules')
     tick1 = time.perf_counter()
     for row in newMatrix:
@@ -367,7 +389,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
             database_errs[match_idx], database_isos[match_idx], database_tags[match_idx], database_lists[match_idx],
             database_vibs[match_idx])
 
-            if database_forms[match_idx] not in force_ignore_molecules:
+            if database_forms[match_idx] not in force_ignore_molecules and database_smiles[match_idx] not in ignore_smiles:
                 line_mols.append(match_tu)
 
         cdms_keys = {(tup[2], tup[5], tup[8]) for tup in line_mols if tup[7] == 'CDMS' and tup[2] != 'NEEDS SMILES'}
