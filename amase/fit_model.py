@@ -398,13 +398,14 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
     for i in force_include_mols:
         if localYN == True:
             if i in localMolsInput:
-                assignedMols.append((i,'local'))
+                if [i,'local'] not in assignedMols:
+                    assignedMols.append((i,'local'))
                 continue
         if i in cdms_mols:
-            if (i, 'CDMS') not in assignedMols:
+            if [i, 'CDMS'] not in assignedMols:
                 assignedMols.append((i, 'CDMS'))
         elif i in jpl_mols:
-            if (i,'JPL') not in assignedMols:
+            if [i,'JPL'] not in assignedMols:
                 assignedMols.append((i,'JPL'))
         else:
             warnings.warn(f"{i} was forced to be included in the fit but is not found in the CDMS or JPL databases. Please check the inputted molecule name.", UserWarning)
@@ -510,7 +511,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
         num_assignments[l] = 0 
 
     
-
+    stricter_mols = []
     if stricter == True:
         '''
         Removing molecules that are only assigned to one blended line and only account for <= 40% of that line intensity
@@ -552,7 +553,11 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
         for de in all_carriers:
             if all_carriers[de] == 0:
                 #print(de)
+                stricter_mols.append(de)
                 delMols.append(de)
+
+        print('Molecules deleted because stricter==True:')
+        print(stricter_mols)
 
     
 
@@ -631,7 +636,7 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                     #print(i)
                     #print(missingCount/len(peak_freqs_filtered))
     print('')
-    print('molecules deleted from missing lines check:')
+    print('Molecules deleted from missing lines check:')
     print(missingLinesDelete)
     print('')
 
