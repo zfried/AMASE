@@ -80,7 +80,8 @@ def run_assignment(
         temp=params['temperature'],
         dfLocal=params['local_df'],
         manual_add_smiles = params['manual_add_smiles'],
-        force_ignore_molecules = params['force_ignore_molecules']
+        force_ignore_molecules = params['force_ignore_molecules'],
+        consider_structure=params['consider_structure']
     )
 
     assignScores = assign_all_lines(

@@ -120,7 +120,7 @@ def load_analyze_dataset(specPath, sig):
     return data, ll0, ul0, freq_arr, int_arr, resolution, peak_indices_original, peak_freqs, peak_ints, peak_indices_full, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, spectrum_freqs, spectrum_ints
 
 
-def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, maxMols, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso, manual_add_smiles, force_ignore_molecules):
+def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, maxMols, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso, manual_add_smiles, force_ignore_molecules, consider_structure):
     
     tickScrape = time.perf_counter()
     noCanFreq = []
@@ -210,6 +210,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
                 idx = dfNames.index(molName)
                 smileValue = dfSmiles[idx]
                 consider_molecule = True
+
                 if Chem.MolFromSmiles(smileValue) is None:
                     consider_molecule = False
                     print('ignoring ', molName, ' because SMILES string (' + smileValue + ') is invalid' )
@@ -251,14 +252,15 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
                                         if spectrum_freqs[i] > freq - dv_val_freq and spectrum_freqs[i] < freq + dv_val_freq:
                                             idx = dfNames.index(molName)
                                             smileValue = dfSmiles[idx]
-                                            if smileValue not in alreadyChecked:
-                                                alreadyChecked.append(smileValue)
-                                                if smileValue not in smiles and 'NEED' not in smileValue:
-                                                    print('adding ' + smileValue + ' to graph')
-                                                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smileValue, edges,
-                                                                                                                    smiles, countDict,
-                                                                                                                    allVectors,
-                                                                                                                    vectorSmiles, direc)
+                                            if consider_structure == True:
+                                                if smileValue not in alreadyChecked:
+                                                    alreadyChecked.append(smileValue)
+                                                    if smileValue not in smiles and 'NEED' not in smileValue:
+                                                        print('adding ' + smileValue + ' to graph')
+                                                        edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smileValue, edges,
+                                                                                                                        smiles, countDict,
+                                                                                                                        allVectors,
+                                                                                                                        vectorSmiles, direc)
 
                                             matrix[i].append(molName)
                                             matrix[i].append(molName)
@@ -364,6 +366,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
     ignore_smiles = []
     unique_smiles = np.unique(database_smiles)
 
+
     for s in unique_smiles:
         if 'NEEDS' not in s:
             mol = Chem.MolFromSmiles(s)
@@ -371,8 +374,9 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
                 ignore_smiles.append(s)
                 print('ignoring ', s, 'due to an invalid SMILES string' )
 
-
     ignore_smiles = set(ignore_smiles)
+    
+
 
     
     print('scraping cdms/jpl/lsd molecules')
@@ -513,14 +517,15 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
         catCount += 1
 
         smile = asm[-1]
-        if smile not in alreadyChecked:
-            alreadyChecked.append(smile)
-            if smile not in smiles and 'NEED' not in smile:
-                print('adding ' + smile + ' to graph')
-                edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
-                                                                                smiles, countDict,
-                                                                                allVectors,
-                                                                                vectorSmiles, direc)
+        if consider_structure == True:
+            if smile not in alreadyChecked:
+                alreadyChecked.append(smile)
+                if smile not in smiles and 'NEED' not in smile:
+                    print('adding ' + smile + ' to graph')
+                    edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(smile, edges,
+                                                                                    smiles, countDict,
+                                                                                    allVectors,
+                                                                                    vectorSmiles, direc)
 
 
     tock2 = time.perf_counter()
@@ -667,13 +672,14 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
             else:
                 try:
                     finalSmile = Chem.MolToSmiles(Chem.MolFromSmiles(updatedSmileVal))
-                    if finalSmile not in alreadyChecked:
-                        alreadyChecked.append(finalSmile)
-                        if finalSmile not in smiles and 'NEED' not in finalSmile:
-                            print('adding ' + finalSmile + ' to graph')
-                            edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(finalSmile, edges, smiles,
-                                                                                            countDict, allVectors,
-                                                                                            vectorSmiles, direc)
+                    if consider_structure == True:
+                        if finalSmile not in alreadyChecked:
+                            alreadyChecked.append(finalSmile)
+                            if finalSmile not in smiles and 'NEED' not in finalSmile:
+                                print('adding ' + finalSmile + ' to graph')
+                                edges, smiles, allVectors, countDict, vectorSmiles = addToGraph(finalSmile, edges, smiles,
+                                                                                                countDict, allVectors,
+                                                                                                vectorSmiles, direc)
 
                     for row in fullMatrix:
                         alreadyPresentMols = []
@@ -754,7 +760,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
     return edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput
 
 
-def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLocal, manual_add_smiles, force_ignore_molecules):
+def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLocal, manual_add_smiles, force_ignore_molecules, consider_structure):
     """
     Overall function to create dataset of lines and molecular candidates from spectrum.
     """
@@ -773,7 +779,7 @@ def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLoca
     dishSize = DEFAULT_ASTRO_PARAMS['dish_size']
     sourceSize = DEFAULT_ASTRO_PARAMS['source_size']
     data, ll0, ul0, freq_arr, int_arr, resolution, peak_indices_original, peak_freqs, peak_ints, peak_indices_full, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, spectrum_freqs, spectrum_ints = load_analyze_dataset(specPath, sig)
-    edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput = create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, MAX_MOLS, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso, manual_add_smiles, force_ignore_molecules)
+    edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput = create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, MAX_MOLS, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso, manual_add_smiles, force_ignore_molecules, consider_structure)
 
     dataset_results = {
         "edges": edges,
