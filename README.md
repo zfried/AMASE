@@ -4,6 +4,9 @@
 
 A paper describing the technique can be found here: https://pubs.acs.org/doi/10.1021/acs.jpca.4c03580
 
+**Note:** This repository is for laboratory mixtures. If you're intested in assigning astronomical mixtures, see: https://github.com/zfried/astro_amase/tree/main
+
+
 ## Installation
 
 **Recommended:** Use Python 3.11 for best compatibility.
