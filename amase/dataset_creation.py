@@ -41,7 +41,60 @@ def load_graph(direc):
 
     return edges, smiles, countDict, vectorSmiles, allVectors
 
+
+def estimate_fwhm_from_peak(freq_arr, int_arr, peak_freq, peak_intensity):
+    """
+    Estimate the Full Width at Half Maximum (FWHM) of a spectral peak.
     
+    Parameters
+    ----------
+    freq_arr : numpy.ndarray
+        Array of frequency values (x-axis of spectrum).
+    int_arr : numpy.ndarray
+        Array of intensity values (y-axis of spectrum).
+    peak_freq : float
+        Frequency value at the peak center.
+    peak_intensity : float
+        Intensity value at the peak maximum.
+    
+    Returns
+    -------
+    float or None
+        FWHM in frequency units. Returns None if the half-maximum points
+        cannot be found within the array bounds (e.g., peak too close to edges).
+    
+    Notes
+    -----
+    The function finds the nearest frequency point to peak_freq, calculates
+    the half-maximum intensity, then searches left and right from the peak
+    to find where the intensity drops below half-maximum. The FWHM is the
+    frequency difference between these two points.
+    """
+        
+    half_max = peak_intensity / 2
+
+    # Find index of the peak frequency (closest match)
+    peak_idx = np.argmin(np.abs(freq_arr - peak_freq))
+
+    # Search to the left
+    left_idx = peak_idx
+    while left_idx > 0 and int_arr[left_idx] > half_max:
+        left_idx -= 1
+
+    # Search to the right
+    right_idx = peak_idx
+    while right_idx < len(int_arr) - 1 and int_arr[right_idx] > half_max:
+        right_idx += 1
+
+    # Check if valid FWHM found
+    if left_idx == 0 or right_idx == len(int_arr) - 1:
+        return None  # FWHM could not be determined cleanly
+
+    fwhm_freq = freq_arr[right_idx] - freq_arr[left_idx]
+    return fwhm_freq
+
+
+
 
 def estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_guess, window=5.0):
     """
@@ -69,6 +122,7 @@ def estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_gue
             widths.append(fwhm)
             velFWHM = (fwhm * 299792.458) / mu  # km/s
             velWidths.append(velFWHM)
+        
         except RuntimeError:
             continue
         cIt += 1
@@ -76,7 +130,7 @@ def estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_gue
     return np.median(widths), widths, np.median(velWidths), velWidths
 
 
-def load_analyze_dataset(specPath, sig):
+def load_analyze_dataset(specPath, sig, frequency_linewidth):
 
     # running molsim peak finder to get first guess at peaks
     data = load_obs(specPath, type='txt')
@@ -92,8 +146,27 @@ def load_analyze_dataset(specPath, sig):
     peak_ints = abs(data.spectrum.Tb[peak_indices])
 
     # estimating median linewidth
-    dVGuess1, dvCalcs, dvVel1, dvVels = estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_guess=1.0)
-    dv_val_freq, dvCalcs2, dv_val_vel, dvVels2 = estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_guess=dVGuess1)
+    if frequency_linewidth is None:
+        roughWidths = []
+        for i in range(len(peak_indices)):
+            rough_fwhm = estimate_fwhm_from_peak(freq_arr, int_arr, peak_freqs[i], peak_ints[i])
+            if rough_fwhm is not None:
+                #rough_vel_fwhm = (rough_fwhm / peak_freqs[i]) * 299792.458
+                #print(f"Rough FWHM: {rough_fwhm:.4f} MHz")
+                roughWidths.append(rough_fwhm) 
+                #print(rough_fwhm)
+
+        medRoughWidth = np.median(roughWidths)
+        #print(medRoughWidth)
+        #dVGuess1, dvCalcs, dvVel1, dvVels = estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_guess=1.0)
+        dv_val_freq, dvCalcs2, dv_val_vel, dvVels2 = estimate_median_linewidth(freq_arr, int_arr, peak_freqs, peak_ints, fwhm_guess=medRoughWidth)
+    else:
+        medFreq = np.median(freq_arr)
+        dv_val_vel = 299792* frequency_linewidth/medFreq
+        dv_val_freq = frequency_linewidth
+
+
+
     print('Frequency linewidth:', round(dv_val_freq,3), 'MHz')
     # running molsim peak finder again with new linewidth
     peak_indices = find_peaks(freq_arr, int_arr, res=resolution, min_sep=min_separation, sigma=sig)
@@ -760,7 +833,7 @@ def create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDir
     return edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput
 
 
-def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLocal, manual_add_smiles, force_ignore_molecules, consider_structure):
+def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLocal, manual_add_smiles, force_ignore_molecules, consider_structure, frequency_linewidth):
     """
     Overall function to create dataset of lines and molecular candidates from spectrum.
     """
@@ -778,7 +851,7 @@ def full_dataset_creation(specPath, direc, sig, localYN, localDirec,temp, dfLoca
     edges, smiles, countDict, vectorSmiles, allVectors = load_graph(direc)
     dishSize = DEFAULT_ASTRO_PARAMS['dish_size']
     sourceSize = DEFAULT_ASTRO_PARAMS['source_size']
-    data, ll0, ul0, freq_arr, int_arr, resolution, peak_indices_original, peak_freqs, peak_ints, peak_indices_full, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, spectrum_freqs, spectrum_ints = load_analyze_dataset(specPath, sig)
+    data, ll0, ul0, freq_arr, int_arr, resolution, peak_indices_original, peak_freqs, peak_ints, peak_indices_full, peak_freqs_full, peak_ints_full, rms, dv_val_freq, dv_val_vel, spectrum_freqs, spectrum_ints = load_analyze_dataset(specPath, sig, frequency_linewidth)
     edges, smiles, allVectors, countDict, vectorSmiles, noCanFreq, noCanInts, localFreqInts, cdmsFreqInts, jplFreqInts, finalMatrix, localMolsInput = create_dataset_file(spectrum_freqs,spectrum_ints, ll0,ul0, localYN, localDirec, direc, edges, smiles, allVectors, countDict, vectorSmiles, MAX_MOLS, temp, dishSize, sourceSize, cont, data, resolution, freq_arr, dv_val_freq, dv_val_vel, dfNames, dfSmiles, dfIso, manual_add_smiles, force_ignore_molecules, consider_structure)
 
     dataset_results = {

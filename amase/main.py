@@ -17,6 +17,7 @@ def run_assignment(
     valid_atoms=['C', 'O', 'H', 'N', 'S'],
     consider_structure=False,
     starting_molecules=None,
+    frequency_linewidth = None,
     manual_add_smiles = False,
     force_ignore_molecules = [],
     force_include_molecules = [],
@@ -38,6 +39,7 @@ def run_assignment(
         consider_structure (bool, optional): Whether to consider molecular structure. Default: False
         starting_molecules (list, optional): List of starting molecules (SMILES strings) to initialize the structural relevance graph. 
             If empty, graph only initialized following the first assigned molecule. Default: None
+        frequency_linewidth: (float, optional): Linewidth (FWHM) in MHz if known. If None, will be determined automatically. Default: None
         manual_add_smiles (bool, optional): Enable interactive prompts to manually input SMILES strings for molecules 
             lacking stored SMILES strings in the downloaded files. If False, the molecules without stored SMILES strings will be ignored. Default: None
         force_ignore_molecules (list, optional): Molecule names (from the downloaded CDMS and JPL .csv files or local directory of catalogs)
@@ -61,6 +63,7 @@ def run_assignment(
         'sigma_threshold': sigma_threshold,
         'temperature': temperature,
         'valid_atoms': valid_atoms,
+        'frequency_lindwidth': frequency_linewidth,
         'consider_structure': consider_structure,
         'starting_molecules': starting_molecules if starting_molecules is not None else [],
         'manual_add_smiles' : manual_add_smiles,
@@ -81,7 +84,8 @@ def run_assignment(
         dfLocal=params['local_df'],
         manual_add_smiles = params['manual_add_smiles'],
         force_ignore_molecules = params['force_ignore_molecules'],
-        consider_structure=params['consider_structure']
+        consider_structure=params['consider_structure'],
+        frequency_linewidth=params['frequency_lindwidth']
     )
 
     assignScores = assign_all_lines(
