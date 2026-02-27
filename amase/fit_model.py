@@ -590,8 +590,8 @@ def full_model(specPath, direc, peak_indices_original, localMolsInput, actualFre
                     obs_intensity_in_window = y_exp[freq_window]
                     
                     # Calculate the integral (using trapezoidal rule)
-                    integral_sim = np.trapz(sim_intensity_in_window, freqs_in_window)
-                    integral_obs = np.trapz(obs_intensity_in_window, freqs_in_window)
+                    integral_sim = np.trapezoid(sim_intensity_in_window, freqs_in_window)
+                    integral_obs = np.trapezoid(obs_intensity_in_window, freqs_in_window)
                     #print(peak_freqs_filtered[z])
                     #print(integral_sim)
                     #print(integral_obs)
