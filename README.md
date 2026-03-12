@@ -104,12 +104,13 @@ amase.run_assignment(
     temperature=300.0,
     local_catalogs_enabled=True,
     local_directory="/path/to/local/catalogs",
-    local_df=pd.read_csv("/path/to/local_metadata.csv"),
-    valid_atoms=['C', 'H', 'N', 'O'],
+    local_df="/path/to/local_metadata.csv",
+    valid_atoms=['C', 'H', 'N', 'O', 'S'],
     consider_structure=True,
     starting_molecules=['CCO', 'CC(=O)O'],  # SMILES strings
     manual_add_smiles=False,
     force_ignore_molecules=[],
+    force_include_molecules=[],
     stricter = True
 )
 ```
