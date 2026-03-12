@@ -1,11 +1,11 @@
-numpy
-pandas
-scipy
-bokeh>=3.0
-rdkit
-numba
-astropy
-fastdist
-gensim
-pyyaml
+numpy==2.4.3
+pandas==3.0.1
+scipy==1.17.1
+bokeh==3.9.0
+rdkit==2025.9.6
+numba==0.64.0
+astropy==7.2.0
+fastdist==1.1.6
+gensim==4.4.0
+pyyaml==6.0.3
 mol2vec @ git+https://github.com/samoturk/mol2vec

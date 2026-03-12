@@ -4,15 +4,16 @@ channels:
   - defaults
 dependencies:
   - python=3.11
-  - numpy
-  - pandas
-  - scipy
-  - rdkit
-  - numba
-  - astropy
-  - gensim
+  - numpy=2.4.3
+  - pandas=3.0.1
+  - scipy=1.17.1
+  - rdkit=2025.9.6
+  - numba=0.64.0
+  - astropy=7.2.0
+  - gensim=4.4.0
   - pip
   - pip:
-    - bokeh==2.4.3
-    - fastdist
+    - bokeh==3.9.0
+    - fastdist==1.1.6
+    - pyyaml==6.0.3
     - git+https://github.com/samoturk/mol2vec
