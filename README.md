@@ -71,7 +71,7 @@ pip install -e .
 
 ## Required Data Files
 
-Before running AMASE, download all required data files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=1tiop6c30zefloyny8ntzelwg&dl=0) and place them in your `directory_path`. These are the files required for the graph calculations and the catalogs/metadata from CDMS/JPL.
+Before running AMASE, download all required data files from the [Dropbox directory](https://www.dropbox.com/scl/fo/ycr5qe4mueemtuyoffp9d/ACd8engNRUgVtEERkm_0JSU?rlkey=frh14dd2f3e0zaafnojqp0osg&st=enw4lsk2&dl=0) and place them in your `directory_path`. These are the files required for the graph calculations and the catalogs/metadata from CDMS/JPL.
 
 ## Usage
 
